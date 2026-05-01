@@ -46,6 +46,8 @@ const I18N = {
 
     section_alerted: "⚠️ เมนูที่คุณแพ้ ({n})",
     section_safe: "✅ เมนูปลอดภัย ({n})",
+    section_uncertain: "❓ เมนูที่ไม่มั่นใจ ({n})",
+    uncertain_hint: "เมนูเหล่านี้ไม่มีในฐานข้อมูล วิเคราะห์โดย AI เท่านั้น ควรถามแม่ค้าก่อนสั่ง",
     see_details: "ดูรายละเอียด",
     ingredients_label: "วัตถุดิบหลัก",
     no_ingredients: "ไม่มีข้อมูลวัตถุดิบ",
@@ -101,6 +103,8 @@ const I18N = {
 
     section_alerted: "⚠️ Allergic dishes ({n})",
     section_safe: "✅ Safe dishes ({n})",
+    section_uncertain: "❓ Uncertain dishes ({n})",
+    uncertain_hint: "These dishes are not in our database — analyzed by AI only. Ask the vendor before ordering.",
     see_details: "See details",
     ingredients_label: "Main ingredients",
     no_ingredients: "No ingredient info",
@@ -156,6 +160,8 @@ const I18N = {
 
     section_alerted: "⚠️ 含过敏原的菜品 ({n})",
     section_safe: "✅ 安全菜品 ({n})",
+    section_uncertain: "❓ 不确定的菜品 ({n})",
+    uncertain_hint: "这些菜品不在数据库中，仅由 AI 分析。请在点餐前询问商家。",
     see_details: "查看详情",
     ingredients_label: "主要食材",
     no_ingredients: "暂无食材信息",

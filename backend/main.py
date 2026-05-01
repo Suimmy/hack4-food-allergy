@@ -264,8 +264,10 @@ async def typhoon_lookup_ingredients(dish_name: str, use_web: bool = True) -> di
         return {"ingredients": [], "allergens": [], "confidence": "low"}
 
     web_context = ""
+    web_used = False
     if use_web:
         web_context = await web_search_ingredients(dish_name)
+        web_used = bool(web_context)
 
     allergen_list = ", ".join(
         [f"{k} ({v['th']})" for k, v in FOODS["allergens"].items()]
@@ -311,21 +313,33 @@ async def typhoon_lookup_ingredients(dish_name: str, use_web: bool = True) -> di
             "ingredients": [],
             "allergens": [],
             "confidence": "low",
+            "web_search_used": web_used,
             "error": str(e)[:200],
         }
 
     m = re.search(r"\{.*\}", content, re.DOTALL)
     if not m:
-        return {"ingredients": [], "allergens": [], "confidence": "low", "raw": content}
+        return {
+            "ingredients": [],
+            "allergens": [],
+            "confidence": "low",
+            "web_search_used": web_used,
+            "raw": content,
+        }
     try:
         result = json.loads(m.group(0))
         known = set(FOODS["allergens"].keys())
         result["allergens"] = [a for a in result.get("allergens", []) if a in known]
-        if web_context:
-            result["used_web"] = True
+        result["web_search_used"] = web_used
         return result
     except json.JSONDecodeError:
-        return {"ingredients": [], "allergens": [], "confidence": "low", "raw": content}
+        return {
+            "ingredients": [],
+            "allergens": [],
+            "confidence": "low",
+            "web_search_used": web_used,
+            "raw": content,
+        }
 
 
 def _strip_ocr_wrapper(text: str) -> str:
@@ -515,6 +529,7 @@ async def analyze_dish_name(name: str) -> dict:
         "ingredients": llm_result.get("ingredients", []),
         "allergens_detected": llm_result.get("allergens", []),
         "confidence": llm_result.get("confidence", "low"),
+        "web_search_used": llm_result.get("web_search_used", False),
     }
 
 
@@ -554,6 +569,7 @@ async def web_search_ingredients(dish_name: str, max_results: int = 3) -> str:
     try:
         from ddgs import DDGS
     except ImportError:
+        print(f"[web_search] ddgs not installed — skipping search for '{dish_name}'")
         return ""
 
     query = f"{dish_name} วัตถุดิบ ส่วนประกอบ"
@@ -566,9 +582,32 @@ async def web_search_ingredients(dish_name: str, max_results: int = 3) -> str:
                 if body:
                     snippets.append(f"- {title}: {body}")
     except Exception as e:
-        print(f"Web search failed: {e}")
+        print(f"[web_search] failed for '{dish_name}': {e}")
         return ""
+
+    if snippets:
+        print(f"[web_search] OK '{dish_name}' → {len(snippets)} snippets")
+    else:
+        print(f"[web_search] empty results for '{dish_name}'")
     return "\n".join(snippets)
+
+
+@app.get("/api/debug/web_search")
+async def debug_web_search(q: str = "ผัดไทย"):
+    """Quick smoke test for DuckDuckGo: GET /api/debug/web_search?q=ผัดไทย"""
+    try:
+        from ddgs import DDGS as _DDGS  # noqa: F401
+        ddgs_available = True
+    except ImportError:
+        ddgs_available = False
+
+    snippets = await web_search_ingredients(q) if ddgs_available else ""
+    return {
+        "ddgs_installed": ddgs_available,
+        "query": q,
+        "snippet_count": len(snippets.split("\n")) if snippets else 0,
+        "preview": snippets[:500] if snippets else None,
+    }
 
 
 @app.get("/api/allergens")
@@ -690,7 +729,26 @@ async def analyze(
                 "confidence": "high",
             }
         else:
-            # Unknown dish — ask LLM
+            # Unknown dish — try fuzzy DB match before falling back to LLM
+            fuzzy = find_dish_fuzzy(name)
+            if fuzzy:
+                d, ratio = fuzzy
+                fuzzy_key = normalize(d["name_th"])
+                if fuzzy_key in seen_dish_keys:
+                    continue
+                seen_dish_keys.add(fuzzy_key)
+                result = {
+                    "source": "local_db_fuzzy",
+                    "dish_name_th": d["name_th"],
+                    "dish_name_en": d["name_en"],
+                    "query": name,
+                    "match_ratio": round(ratio, 2),
+                    "ingredients": d["ingredients"],
+                    "allergens_detected": d["allergens"],
+                    "confidence": "medium" if ratio < 0.85 else "high",
+                }
+                dishes.append(enrich_dish_result(result, user_allergies, user_custom))
+                continue
             llm_result = await typhoon_lookup_ingredients(name)
             seen_dish_keys.add(norm)
             result = {
@@ -701,6 +759,7 @@ async def analyze(
                 "ingredients": llm_result.get("ingredients", []),
                 "allergens_detected": llm_result.get("allergens", []),
                 "confidence": llm_result.get("confidence", "low"),
+                "web_search_used": llm_result.get("web_search_used", False),
             }
         dishes.append(enrich_dish_result(result, user_allergies, user_custom))
 

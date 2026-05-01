@@ -616,6 +616,21 @@ body {
 
 .danger-title { color: var(--danger); }
 .safe-title { color: var(--safe); }
+.uncertain-title { color: #d97706; }
+
+.uncertain-hint {
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 0.7rem 0 !important;
+  border-radius: 4px;
+  color: #78350f !important;
+}
+
+.dish-card.uncertain {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
 
 .dish-card {
   border: 1.5px solid var(--border);

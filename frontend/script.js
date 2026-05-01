@@ -166,8 +166,13 @@ analyzeBtn.addEventListener("click", async () => {
 
 // ----- result rendering -----
 function renderDishCard(dish) {
-  const cls = dish.has_alert ? "dish-card danger" : "dish-card safe";
-  const headerIcon = dish.has_alert ? "⚠️" : "✅";
+  const isUncertain = !dish.has_alert && dish.source !== "local_db";
+  const cls = dish.has_alert
+    ? "dish-card danger"
+    : isUncertain
+    ? "dish-card uncertain"
+    : "dish-card safe";
+  const headerIcon = dish.has_alert ? "⚠️" : isUncertain ? "❓" : "✅";
 
   const alertList = dish.alerts?.length
     ? `<ul class="alert-list">${dish.alerts
@@ -192,7 +197,9 @@ function renderDishCard(dish) {
   else if (dish.source === "local_db_fuzzy") {
     const ratio = dish.match_ratio ? ` (${Math.round(dish.match_ratio * 100)}%)` : "";
     sourceLabel = t("source_db_fuzzy") + ratio;
-  } else if (dish.source === "typhoon_llm") sourceLabel = t("source_ai");
+  } else if (dish.source === "typhoon_llm") {
+    sourceLabel = dish.web_search_used ? t("source_web") : t("source_ai");
+  }
 
   const confidenceLabel = {
     high: t("conf_high"),
@@ -293,8 +300,13 @@ function escapeAttr(s) {
 
 function renderResult(data) {
   const dishes = data.dishes || [];
+  // 3-way split:
+  //   alerted   = has_alert (any source)
+  //   safe      = no alert + dish came from exact DB match (high-confidence safe)
+  //   uncertain = no alert + dish came from fuzzy/LLM (we couldn't fully confirm)
   const alerted = dishes.filter((d) => d.has_alert);
-  const safe = dishes.filter((d) => !d.has_alert);
+  const safe = dishes.filter((d) => !d.has_alert && d.source === "local_db");
+  const uncertain = dishes.filter((d) => !d.has_alert && d.source !== "local_db");
   const hasUserAllergies = selectedAllergies.size > 0 || customAllergies.length > 0;
 
   let bannerHtml = "";
@@ -369,6 +381,11 @@ function renderResult(data) {
     ? `<p class="section-title safe-title">${t("section_safe", { n: safe.length })}</p>
        ${safe.map(renderDishCard).join("")}`
     : "";
+  const uncertainHtml = uncertain.length
+    ? `<p class="section-title uncertain-title">${t("section_uncertain", { n: uncertain.length })}</p>
+       <p class="hint inline uncertain-hint">${t("uncertain_hint")}</p>
+       ${uncertain.map(renderDishCard).join("")}`
+    : "";
 
   const debugHtml = data.is_menu
     ? `<details class="debug">
@@ -383,7 +400,7 @@ function renderResult(data) {
        </details>`
     : "";
 
-  resultContent.innerHTML = `${summary}${alertedHtml}${safeHtml}${debugHtml}`;
+  resultContent.innerHTML = `${summary}${alertedHtml}${safeHtml}${uncertainHtml}${debugHtml}`;
 
   // Hook up copy buttons on vendor panels
   resultContent.querySelectorAll(".vendor-copy-btn").forEach((btn) => {
