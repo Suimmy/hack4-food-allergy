@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ALLERGY_FILE = ROOT / "data" / "allergy.json"
 RECIPE_FILE = ROOT / "data" / "recipe.json"
 SYNONYMS_FILE = ROOT / "data" / "synonyms.json"
+CONTAMINATION_FILE = ROOT / "data" / "contamination_rules.json"
 FRONTEND_DIR = ROOT / "frontend"
 
 load_dotenv(ROOT / ".env")
@@ -38,6 +39,12 @@ try:
         SYNONYMS_RAW = json.load(f).get("synonyms", {})
 except FileNotFoundError:
     SYNONYMS_RAW = {}
+
+try:
+    with open(CONTAMINATION_FILE, "r", encoding="utf-8") as f:
+        CONTAMINATION_RULES = json.load(f).get("rules", [])
+except FileNotFoundError:
+    CONTAMINATION_RULES = []
 
 FOODS = {"allergens": ALLERGENS, "dishes": DISHES}
 
@@ -130,6 +137,86 @@ def _strip_protein_suffix(s: str) -> str:
         if s.endswith(p) and len(s) > len(p) + 1:
             return s[: -len(p)]
     return s
+
+
+def _matches_contamination_rule(name: str, rule: dict) -> bool:
+    """Check if a dish name matches a contamination rule's pattern under its
+    position constraints (start / after_prefix / after_protein / end / anywhere),
+    while respecting the exclude_if_contains blacklist.
+
+    Thai dish names have no spaces, so we use position-based matching instead of
+    word boundaries (\\b doesn't work reliably). Patterns at the START of a name
+    or right after known prefixes / proteins are reliable cooking-method markers.
+    """
+    norm = normalize(name)
+    if not norm:
+        return False
+
+    # Blacklist check first — defends against false positives like
+    # "ขนมปังปิ้ง" (toast) matching the grill rule via "ปิ้ง"
+    for ex in rule.get("exclude_if_contains", []):
+        if normalize(ex) in norm:
+            return False
+
+    patterns = rule.get("patterns", [])
+    match_at = set(rule.get("match_at", ["start"]))
+    prefixes = [normalize(p) for p in rule.get("prefixes", [])]
+    proteins = [normalize(p) for p in _PROTEIN_WORDS]
+
+    for pat in patterns:
+        p = normalize(pat)
+        if not p:
+            continue
+
+        if "start" in match_at and norm.startswith(p):
+            return True
+        if "after_prefix" in match_at:
+            for prefix in prefixes:
+                if prefix and norm.startswith(prefix + p):
+                    return True
+        if "after_protein" in match_at:
+            for prot in proteins:
+                if prot and (prot + p) in norm:
+                    return True
+        if "end" in match_at and norm.endswith(p):
+            return True
+        if "anywhere" in match_at and p in norm:
+            return True
+    return False
+
+
+def infer_contamination_risk(
+    dish_name: str,
+    user_allergies: list[str] | None = None,
+) -> list[dict]:
+    """For a dish name, return list of contamination warnings the user cares about.
+
+    Each entry: {rule_id, allergens: [keys], reason: {th/en/zh}}.
+
+    When user_allergies is provided, filters each rule's may_contain to only the
+    user's selected allergen keys — so if user isn't allergic to fish, the
+    'wok shares oil with fried fish' warning is suppressed.
+    """
+    if not dish_name:
+        return []
+    user_set = set(user_allergies or [])
+    warnings: list[dict] = []
+    for rule in CONTAMINATION_RULES:
+        if not _matches_contamination_rule(dish_name, rule):
+            continue
+        rule_allergens = rule.get("may_contain", [])
+        if user_set:
+            relevant = [a for a in rule_allergens if a in user_set]
+            if not relevant:
+                continue
+        else:
+            relevant = list(rule_allergens)
+        warnings.append({
+            "rule_id": rule.get("id", ""),
+            "allergens": relevant,
+            "reason": rule.get("reason", {}),
+        })
+    return warnings
 
 
 def find_dish_fuzzy(name: str, threshold: float = 0.65) -> Optional[tuple[dict, float]]:
@@ -738,7 +825,7 @@ async def enrich_dish_result(
     user_allergies: list[str],
     custom_allergies: list[str] | None = None,
 ) -> dict:
-    """Add alerts + allergen display info to a dish result."""
+    """Add alerts + allergen display info + contamination warnings."""
     alerts = await check_allergens(
         result["allergens_detected"],
         user_allergies,
@@ -752,6 +839,24 @@ async def enrich_dish_result(
         for k in result["allergens_detected"]
         if k in FOODS["allergens"]
     ]
+
+    # Cross-contamination — only attach to dishes that are NOT already alerted
+    # (alerted dishes already have a stronger warning; contamination would be redundant)
+    if not result["has_alert"]:
+        warnings = infer_contamination_risk(
+            result.get("dish_name_th") or result.get("query") or "",
+            user_allergies=user_allergies,
+        )
+        if warnings:
+            # Enrich each warning's allergen keys with display info
+            for w in warnings:
+                w["allergens_info"] = [
+                    {"key": k, **FOODS["allergens"][k]}
+                    for k in w["allergens"]
+                    if k in FOODS["allergens"]
+                ]
+            result["contamination_warnings"] = warnings
+
     return result
 
 

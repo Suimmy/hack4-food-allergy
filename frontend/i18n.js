@@ -80,6 +80,8 @@ const I18N = {
     emergency_label: "ฉุกเฉิน:",
     emergency_rescue: "📞 1669 กู้ภัย",
     emergency_poison: "📞 1646 ศูนย์พิษ",
+    contamination_label: "อาจปนเปื้อน",
+    vendor_cleanup: "กรุณาทำในกระทะ/หม้อ/ครก/เตา ที่ไม่ปนเปื้อนกับวัตถุดิบที่ผมแพ้ครับ",
   },
   en: {
     app_title: "Allergy Alert",
@@ -146,6 +148,8 @@ const I18N = {
     emergency_label: "Emergency (Thailand):",
     emergency_rescue: "📞 1669 Rescue",
     emergency_poison: "📞 1646 Poison Center",
+    contamination_label: "May be contaminated",
+    vendor_cleanup: "Please use a clean wok/pan/mortar/grill — not the one used with my allergens.",
   },
   zh: {
     app_title: "过敏警报",
@@ -212,6 +216,8 @@ const I18N = {
     emergency_label: "紧急电话（泰国）:",
     emergency_rescue: "📞 1669 急救",
     emergency_poison: "📞 1646 中毒中心",
+    contamination_label: "可能交叉污染",
+    vendor_cleanup: "请用干净的锅/炒锅/石臼/烤架，不要用接触过我过敏食材的器具。",
   },
 };
 

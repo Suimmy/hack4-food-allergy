@@ -248,6 +248,22 @@ function renderDishCard(dish) {
         .join("")}</ul>`
     : "";
 
+  // Cross-contamination chips (only present on non-alerted dishes)
+  const contaminationHtml = dish.contamination_warnings?.length
+    ? `<div class="contamination-warnings">${dish.contamination_warnings
+        .map((w) => {
+          const reason = (w.reason && (w.reason[currentLang] || w.reason.th)) || "";
+          const allergens = (w.allergens_info || [])
+            .map((a) => `${a.icon} ${escapeHtml(allergenLabel(a))}`)
+            .join(", ");
+          return `<div class="contamination-chip">
+            <strong>⚠️ ${t("contamination_label")}: ${allergens}</strong>
+            <span class="contamination-reason">${escapeHtml(reason)}</span>
+          </div>`;
+        })
+        .join("")}</div>`
+    : "";
+
   const ingredients = dish.ingredients?.length
     ? `<ul class="ingredient-list">${dish.ingredients
         .map((i) => `<li>${escapeHtml(i)}</li>`)
@@ -300,6 +316,7 @@ function renderDishCard(dish) {
         </div>
       </div>
       ${alertList}
+      ${contaminationHtml}
       <details class="dish-details">
         <summary>${t("see_details")}</summary>
         <p class="section-title">${t("ingredients_label")}</p>
@@ -330,18 +347,22 @@ function buildAllergenListLabel(lang) {
   return items.join(", ");
 }
 
-function vendorPhrase(lang) {
+function vendorPhrase(lang, includeCleanup) {
   const list = buildAllergenListLabel(lang) || "—";
-  // Inject list into the localized template
   const tpl = (I18N[lang] && I18N[lang].vendor_phrase) || "";
-  return tpl.replace("{list}", list);
+  let msg = tpl.replace("{list}", list);
+  if (includeCleanup) {
+    const cleanup = (I18N[lang] && I18N[lang].vendor_cleanup) || "";
+    if (cleanup) msg += " " + cleanup;
+  }
+  return msg;
 }
 
-function renderVendorPanel(hasUserAllergies) {
+function renderVendorPanel(hasUserAllergies, hasContamination) {
   if (!hasUserAllergies) return "";
-  const thMsg = vendorPhrase("th");
+  const thMsg = vendorPhrase("th", hasContamination);
   const showSecond = currentLang !== "th";
-  const userMsg = showSecond ? vendorPhrase(currentLang) : "";
+  const userMsg = showSecond ? vendorPhrase(currentLang, hasContamination) : "";
   const flagSecond = currentLang === "en" ? "🇬🇧 EN" : "🇨🇳 中文";
 
   return `
@@ -380,6 +401,7 @@ function renderResult(data) {
   const safe = dishes.filter((d) => !d.has_alert && d.source === "local_db");
   const uncertain = dishes.filter((d) => !d.has_alert && d.source !== "local_db");
   const hasUserAllergies = selectedAllergies.size > 0 || customAllergies.length > 0;
+  const hasContamination = dishes.some((d) => d.contamination_warnings?.length);
 
   let bannerHtml = "";
   let bannerStyle = "info"; // info | danger | safe — controls layout
@@ -431,7 +453,7 @@ function renderResult(data) {
   }
 
   // Compose: split layout when there's both a banner AND a vendor panel
-  const vendorHtml = renderVendorPanel(hasUserAllergies);
+  const vendorHtml = renderVendorPanel(hasUserAllergies, hasContamination);
   let summary = "";
   if (bannerHtml && vendorHtml) {
     summary = `

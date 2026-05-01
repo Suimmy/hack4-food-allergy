@@ -673,6 +673,38 @@ body {
   background: #fffbeb;
 }
 
+.contamination-warnings {
+  margin: 0.55rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.contamination-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.65rem;
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 0.83rem;
+  color: #78350f;
+  line-height: 1.45;
+}
+
+.contamination-chip strong {
+  color: #92400e;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.contamination-reason {
+  font-size: 0.78rem;
+  color: #92400e;
+  opacity: 0.85;
+}
+
 .dish-card {
   border: 1.5px solid var(--border);
   border-radius: 12px;
