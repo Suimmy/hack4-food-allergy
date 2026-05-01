@@ -657,6 +657,48 @@ async def analyze_dish_name(name: str) -> dict:
     }
 
 
+def detect_allergens_from_name(name: str) -> tuple[list[str], list[str]]:
+    """Scan a dish name for allergen keywords. Returns (allergen_keys, matched_terms).
+
+    SAFETY-CRITICAL: prevents false-safe results when a fuzzy/substring match
+    drops information from the user-visible dish name.
+
+    Example: query 'ข้าวผัดกุ้ง' matched DB 'ข้าวผัด' (generic). The DB entry
+    has no shellfish, so without this scan the dish would be marked safe even
+    though 'กุ้ง' (shrimp) appears in the name. This function catches that.
+    """
+    if not name:
+        return [], []
+    norm = normalize(name)
+
+    # Generic Thai words too short or too broad to be reliable signals.
+    # 'ถั่ว' alone is in the peanut keywords but also matches mung bean / soybean
+    # ('ถั่วเขียว', 'ถั่วเหลือง'); we ignore it here to avoid false positives.
+    BLACKLIST = {"ถั่ว"}
+
+    found_keys: list[str] = []
+    matched_terms: list[str] = []
+    seen: set[str] = set()
+
+    for key, info in ALLERGENS.items():
+        if key in seen:
+            continue
+        candidates = (
+            info.get("keywords", [])
+            + [info.get("th", ""), info.get("en", "")]
+        )
+        for kw in candidates:
+            kw_clean = (kw or "").strip()
+            if not kw_clean or len(kw_clean) < 2 or kw_clean in BLACKLIST:
+                continue
+            if normalize(kw_clean) in norm:
+                found_keys.append(key)
+                matched_terms.append(kw_clean)
+                seen.add(key)
+                break
+    return found_keys, matched_terms
+
+
 async def _llm_expand_synonyms(term: str) -> list[str]:
     """Ask Typhoon LLM to translate an unknown allergen term into TH/EN/ZH variants.
 
@@ -729,10 +771,12 @@ async def check_allergens(
     user_allergies: list[str],
     ingredients: list[str] | None = None,
     custom_allergies: list[str] | None = None,
+    dish_name: str | None = None,
 ) -> list[dict]:
     """Return list of allergen alerts:
     - Built-in allergen matches (key vs key)
-    - Custom allergen substring matches against ingredients, expanded via synonyms
+    - Custom allergen substring matches against ingredients + dish name,
+      expanded via synonyms (SYNONYM_INDEX + LLM fallback)
     """
     matched: list[dict] = []
     for a in allergens_in_dish:
@@ -740,8 +784,11 @@ async def check_allergens(
             info = FOODS["allergens"][a]
             matched.append({"key": a, "type": "builtin", **info})
 
-    if custom_allergies and ingredients:
-        ing_blob = " ".join(ingredients).lower()
+    if custom_allergies:
+        # Scan both ingredients AND the dish name. The dish name is critical
+        # because fuzzy/substring matches strip information ('ข้าวผัดมะม่วง'
+        # matched to 'ข้าวผัด' would otherwise lose 'มะม่วง').
+        scan_blob = (" ".join(ingredients or []) + " " + (dish_name or "")).lower()
         for term in custom_allergies:
             base = term.strip()
             if not base:
@@ -750,7 +797,7 @@ async def check_allergens(
             hit_synonym = None
             for syn in synonyms:
                 s = syn.strip().lower()
-                if s and s in ing_blob:
+                if s and s in scan_blob:
                     hit_synonym = syn
                     break
             if hit_synonym:
@@ -825,12 +872,35 @@ async def enrich_dish_result(
     user_allergies: list[str],
     custom_allergies: list[str] | None = None,
 ) -> dict:
-    """Add alerts + allergen display info + contamination warnings."""
+    """Add alerts + allergen display info + contamination warnings.
+
+    SAFETY: also scans the dish name (the user-visible OCR'd query) for
+    allergen keywords. This is critical because fuzzy / substring matches
+    drop information from the query — e.g. 'ข้าวผัดกุ้ง' fuzzy-matched to
+    DB 'ข้าวผัด' would otherwise inherit the DB entry's clean ingredient
+    list and miss the shrimp entirely.
+    """
+    query_name = result.get("query") or result.get("dish_name_th") or ""
+
+    # Scan name for allergen keywords + matched ingredient terms
+    extra_allergens, extra_terms = detect_allergens_from_name(query_name)
+    if extra_allergens:
+        existing = set(result.get("allergens_detected", []))
+        result["allergens_detected"] = list(existing | set(extra_allergens))
+    if extra_terms:
+        existing_norm = {normalize(i) for i in result.get("ingredients", [])}
+        result.setdefault("ingredients", [])
+        for term in extra_terms:
+            if normalize(term) not in existing_norm:
+                result["ingredients"].append(term)
+                existing_norm.add(normalize(term))
+
     alerts = await check_allergens(
         result["allergens_detected"],
         user_allergies,
         ingredients=result.get("ingredients", []),
         custom_allergies=custom_allergies,
+        dish_name=query_name,
     )
     result["alerts"] = alerts
     result["has_alert"] = len(alerts) > 0
