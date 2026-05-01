@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parent.parent
 ALLERGY_FILE = ROOT / "data" / "allergy.json"
 RECIPE_FILE = ROOT / "data" / "recipe.json"
+SYNONYMS_FILE = ROOT / "data" / "synonyms.json"
 FRONTEND_DIR = ROOT / "frontend"
 
 load_dotenv(ROOT / ".env")
@@ -32,8 +33,44 @@ with open(ALLERGY_FILE, "r", encoding="utf-8") as f:
 with open(RECIPE_FILE, "r", encoding="utf-8") as f:
     DISHES = json.load(f)["dishes"]
 
-# Backwards-compat shim so the rest of the code can keep using FOODS["allergens"] / FOODS["dishes"]
+try:
+    with open(SYNONYMS_FILE, "r", encoding="utf-8") as f:
+        SYNONYMS_RAW = json.load(f).get("synonyms", {})
+except FileNotFoundError:
+    SYNONYMS_RAW = {}
+
 FOODS = {"allergens": ALLERGENS, "dishes": DISHES}
+
+
+def _build_synonym_index() -> dict[str, set[str]]:
+    """Build term → set(group) lookup. Merges synonyms.json with allergy.json keywords.
+
+    A user-typed allergen ("shrimp") will match any ingredient whose lowercased
+    text contains any term from the same synonym group ("กุ้ง", "shrimp", "虾"...).
+    """
+    index: dict[str, set[str]] = {}
+
+    def add_group(terms: list[str]):
+        canonical = {str(t).strip().lower() for t in terms if str(t).strip()}
+        for t in canonical:
+            index.setdefault(t, set()).update(canonical)
+
+    # 1. Synonyms file
+    for _, terms in SYNONYMS_RAW.items():
+        if isinstance(terms, list):
+            add_group(terms)
+
+    # 2. Built-in allergens — th/en names + keywords field
+    for key, info in ALLERGENS.items():
+        group = [info.get("th", ""), info.get("en", "")] + info.get("keywords", [])
+        add_group([t for t in group if t])
+
+    return index
+
+
+SYNONYM_INDEX: dict[str, set[str]] = _build_synonym_index()
+# In-process cache for LLM-expanded synonyms (key: lowercased term)
+LLM_SYNONYM_CACHE: dict[str, list[str]] = {}
 
 
 app = FastAPI(title="Thai Food Allergy Detector")
@@ -533,7 +570,74 @@ async def analyze_dish_name(name: str) -> dict:
     }
 
 
-def check_allergens(
+async def _llm_expand_synonyms(term: str) -> list[str]:
+    """Ask Typhoon LLM to translate an unknown allergen term into TH/EN/ZH variants.
+
+    Result is cached in-process so repeated checks of the same term are free.
+    Returns a list including the original term + translations, or just [term] on failure.
+    """
+    cache_key = term.lower().strip()
+    if cache_key in LLM_SYNONYM_CACHE:
+        return LLM_SYNONYM_CACHE[cache_key]
+    if not TYPHOON_API_KEY:
+        return [term]
+
+    user = (
+        f'คำว่า "{term}" คืออะไรในแง่ของอาหาร/วัตถุดิบ? '
+        "ตอบเป็น JSON array ของชื่อวัตถุดิบนี้ในภาษาไทย, อังกฤษ, จีน "
+        "และคำพ้องที่ใช้ในเมนูอาหาร (รวมชื่อทางวิทยาศาสตร์ ถ้ามี) "
+        "ตัวอย่าง: [\"shrimp\", \"prawn\", \"กุ้ง\", \"虾\"]"
+    )
+    payload = {
+        "model": TYPHOON_CHAT_MODEL,
+        "messages": [
+            {"role": "system", "content": "ตอบเป็น JSON array เท่านั้น ห้ามมีข้อความอื่น"},
+            {"role": "user", "content": user},
+        ],
+        "max_tokens": 256,
+        "temperature": 0.0,
+    }
+    headers = {"Authorization": f"Bearer {TYPHOON_API_KEY}", "Content-Type": "application/json"}
+
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.post(TYPHOON_CHAT_URL, headers=headers, json=payload)
+            r.raise_for_status()
+            content = r.json()["choices"][0]["message"]["content"]
+        m = re.search(r"\[.*\]", content, re.DOTALL)
+        if m:
+            parsed = json.loads(m.group(0))
+            terms = [str(x).strip() for x in parsed if isinstance(x, (str, int, float)) and str(x).strip()]
+            if terms:
+                # Always include the user's original term so display works
+                if term not in terms:
+                    terms.insert(0, term)
+                LLM_SYNONYM_CACHE[cache_key] = terms
+                return terms
+    except Exception as e:
+        print(f"[synonym_llm] failed for '{term}': {e}")
+
+    LLM_SYNONYM_CACHE[cache_key] = [term]
+    return [term]
+
+
+async def expand_synonyms(term: str) -> list[str]:
+    """Return all synonyms (TH/EN/ZH/etc.) for a custom allergen term.
+
+    Lookup order:
+      1. Static SYNONYM_INDEX (synonyms.json + allergy.json keywords)
+      2. Typhoon LLM fallback (cached)
+      3. Original term as-is
+    """
+    if not term:
+        return []
+    t = term.strip().lower()
+    if t in SYNONYM_INDEX:
+        return list(SYNONYM_INDEX[t])
+    return await _llm_expand_synonyms(term)
+
+
+async def check_allergens(
     allergens_in_dish: list[str],
     user_allergies: list[str],
     ingredients: list[str] | None = None,
@@ -541,7 +645,7 @@ def check_allergens(
 ) -> list[dict]:
     """Return list of allergen alerts:
     - Built-in allergen matches (key vs key)
-    - Custom allergen substring matches against the dish ingredients list
+    - Custom allergen substring matches against ingredients, expanded via synonyms
     """
     matched: list[dict] = []
     for a in allergens_in_dish:
@@ -552,14 +656,24 @@ def check_allergens(
     if custom_allergies and ingredients:
         ing_blob = " ".join(ingredients).lower()
         for term in custom_allergies:
-            t = term.strip().lower()
-            if t and t in ing_blob:
+            base = term.strip()
+            if not base:
+                continue
+            synonyms = await expand_synonyms(base)
+            hit_synonym = None
+            for syn in synonyms:
+                s = syn.strip().lower()
+                if s and s in ing_blob:
+                    hit_synonym = syn
+                    break
+            if hit_synonym:
                 matched.append({
-                    "key": f"custom:{term}",
+                    "key": f"custom:{base}",
                     "type": "custom",
-                    "th": term,
-                    "en": term,
+                    "th": base,
+                    "en": base,
                     "icon": "⚠️",
+                    "matched_synonym": hit_synonym,
                 })
     return matched
 
@@ -619,13 +733,13 @@ async def get_allergens():
     ]
 
 
-def enrich_dish_result(
+async def enrich_dish_result(
     result: dict,
     user_allergies: list[str],
     custom_allergies: list[str] | None = None,
 ) -> dict:
     """Add alerts + allergen display info to a dish result."""
-    alerts = check_allergens(
+    alerts = await check_allergens(
         result["allergens_detected"],
         user_allergies,
         ingredients=result.get("ingredients", []),
@@ -712,7 +826,7 @@ async def analyze(
             "allergens_detected": d["allergens"],
             "confidence": "high",
         }
-        dishes.append(enrich_dish_result(result, user_allergies, user_custom))
+        dishes.append(await enrich_dish_result(result, user_allergies, user_custom))
 
     # 2. For each LLM-extracted name not already covered, try local DB then LLM lookup.
     #    Dedup is by *query name* — different OCR'd names that fuzzy-match the same DB
@@ -757,7 +871,7 @@ async def analyze(
                     "allergens_detected": local["allergens"],
                     "confidence": "high",
                 }
-                dishes.append(enrich_dish_result(result, user_allergies, user_custom))
+                dishes.append(await enrich_dish_result(result, user_allergies, user_custom))
                 continue
         else:
             # Unknown dish — try fuzzy DB match before falling back to LLM
@@ -778,7 +892,7 @@ async def analyze(
                     "allergens_detected": d["allergens"],
                     "confidence": "medium" if ratio < 0.85 else "high",
                 }
-                dishes.append(enrich_dish_result(result, user_allergies, user_custom))
+                dishes.append(await enrich_dish_result(result, user_allergies, user_custom))
                 continue
             llm_result = await typhoon_lookup_ingredients(name)
             seen_dish_keys.add(norm)
@@ -792,7 +906,7 @@ async def analyze(
                 "confidence": llm_result.get("confidence", "low"),
                 "web_search_used": llm_result.get("web_search_used", False),
             }
-        dishes.append(enrich_dish_result(result, user_allergies, user_custom))
+        dishes.append(await enrich_dish_result(result, user_allergies, user_custom))
 
     alerted = [d for d in dishes if d["has_alert"]]
     safe = [d for d in dishes if not d["has_alert"]]

@@ -76,6 +76,10 @@ const I18N = {
     vendor_copy: "📋 คัดลอก",
     vendor_copied: "✓ คัดลอกแล้ว",
     vendor_phrase: "สวัสดีครับ ผมแพ้วัตถุดิบประเภท {list} ห้ามใส่วัตถุดิบเหล่านี้มาในอาหารที่ผมสั่ง หรือถ้าทำไม่ได้ ให้บอกผมว่าไม่ได้ครับ",
+    disclaimer: "⚠️ ข้อมูลจาก AI อาจไม่ถูกต้อง 100% — ยืนยันกับร้านก่อนสั่งทุกครั้ง",
+    emergency_label: "ฉุกเฉิน:",
+    emergency_rescue: "📞 1669 กู้ภัย",
+    emergency_poison: "📞 1646 ศูนย์พิษ",
   },
   en: {
     app_title: "Allergy Alert",
@@ -138,6 +142,10 @@ const I18N = {
     vendor_copy: "📋 Copy",
     vendor_copied: "✓ Copied",
     vendor_phrase: "Hello, I am allergic to: {list}. Please do not include any of these in my order. If you cannot, please let me know.",
+    disclaimer: "⚠️ AI results may not be 100% accurate — always confirm with the vendor before ordering",
+    emergency_label: "Emergency (Thailand):",
+    emergency_rescue: "📞 1669 Rescue",
+    emergency_poison: "📞 1646 Poison Center",
   },
   zh: {
     app_title: "过敏警报",
@@ -200,6 +208,10 @@ const I18N = {
     vendor_copy: "📋 复制",
     vendor_copied: "✓ 已复制",
     vendor_phrase: "您好，我对以下食材过敏：{list}。请不要在我点的菜里加入这些食材。如果做不到，请告诉我。",
+    disclaimer: "⚠️ AI 结果可能不完全准确 — 请务必在点餐前与商家确认",
+    emergency_label: "紧急电话（泰国）:",
+    emergency_rescue: "📞 1669 急救",
+    emergency_poison: "📞 1646 中毒中心",
   },
 };
 
