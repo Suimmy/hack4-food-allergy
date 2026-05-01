@@ -680,9 +680,16 @@ async def analyze(
     db_matched_dishes: list[dict] = []
 
     if is_menu:
-        # Fan out: LLM extraction + local DB scan in parallel-ish (sequential is fine)
         extracted_names = await extract_dish_names(ocr_text)
-        db_matched_dishes = find_all_local_matches(ocr_text)
+        # find_all_local_matches scans the whole OCR blob for DB substrings, so
+        # generic dishes ("ข้าวผัด") match inside specific menu items
+        # ("ข้าวผัดกุ้ง", "ข้าวผัดปู"). When extracted_names already has the
+        # specific names, step 1 just produces generic-vs-specific duplicate cards.
+        # Only run it as a fallback when LLM + heuristic returned nothing.
+        if extracted_names:
+            db_matched_dishes = []
+        else:
+            db_matched_dishes = find_all_local_matches(ocr_text)
     else:
         # Single typed name: just look it up
         extracted_names = [ocr_text]
@@ -718,21 +725,40 @@ async def analyze(
         local = find_dish_local(name)
         if local:
             local_key = normalize(local["name_th"])
-            # Skip only if THIS exact DB dish was already added (e.g. step 1 caught it
-            # via whole-text scan). The query may have been a different surface form.
-            if local_key in seen_dish_keys:
+            is_exact_match = local_key == norm
+            if is_exact_match:
+                # User-visible name == DB name: real duplicate, dedup by DB key
+                if local_key in seen_dish_keys:
+                    continue
+                seen_dish_keys.add(local_key)
+                seen_dish_keys.add(norm)
+                result = {
+                    "source": "local_db",
+                    "dish_name_th": local["name_th"],
+                    "dish_name_en": local["name_en"],
+                    "query": name,
+                    "ingredients": local["ingredients"],
+                    "allergens_detected": local["allergens"],
+                    "confidence": "high",
+                }
+            else:
+                # Substring / superstring match — DB entry is generic ("ข้าวผัด") and
+                # the OCR'd name is more specific ("ข้าวผัดกุ้ง"). Treat as fuzzy so
+                # each specific menu item keeps its own card with matched_to label.
+                seen_dish_keys.add(norm)
+                result = {
+                    "source": "local_db_fuzzy",
+                    "dish_name_th": name,
+                    "dish_name_en": local.get("name_en", ""),
+                    "matched_to": local["name_th"],
+                    "query": name,
+                    "match_ratio": 0.9,
+                    "ingredients": local["ingredients"],
+                    "allergens_detected": local["allergens"],
+                    "confidence": "high",
+                }
+                dishes.append(enrich_dish_result(result, user_allergies, user_custom))
                 continue
-            seen_dish_keys.add(local_key)
-            seen_dish_keys.add(norm)
-            result = {
-                "source": "local_db",
-                "dish_name_th": local["name_th"],
-                "dish_name_en": local["name_en"],
-                "query": name,
-                "ingredients": local["ingredients"],
-                "allergens_detected": local["allergens"],
-                "confidence": "high",
-            }
         else:
             # Unknown dish — try fuzzy DB match before falling back to LLM
             fuzzy = find_dish_fuzzy(name)
@@ -779,7 +805,9 @@ async def analyze(
         "safe_count": len(safe),
         "dishes": dishes,
         "extracted_names": extracted_names,
-        "db_matched_count": len(db_matched_dishes),
+        "db_matched_count": sum(
+            1 for d in dishes if d["source"] in ("local_db", "local_db_fuzzy")
+        ),
     }
 
 
