@@ -1,0 +1,1130 @@
+{
+  "dishes": [
+    {
+      "name_th": "ผัดไทย",
+      "name_en": "Pad Thai",
+      "aliases": [
+        "ผัดไทยกุ้งสด",
+        "ผัดไทยกุ้ง",
+        "ผัดไท",
+        "pad thai",
+        "phad thai"
+      ],
+      "ingredients": [
+        "เส้นจันท์",
+        "กุ้ง",
+        "ไข่",
+        "ถั่วลิสง",
+        "ถั่วงอก",
+        "เต้าหู้",
+        "น้ำปลา",
+        "น้ำมะขาม",
+        "กระเทียม",
+        "พริกป่น"
+      ],
+      "allergens": [
+        "shellfish",
+        "egg",
+        "peanut",
+        "fish",
+        "soy"
+      ]
+    },
+    {
+      "name_th": "ต้มยำกุ้ง",
+      "name_en": "Tom Yum Goong",
+      "aliases": [
+        "tom yum goong"
+      ],
+      "ingredients": [
+        "กุ้ง",
+        "ตะไคร้",
+        "ใบมะกรูด",
+        "ข่า",
+        "พริก",
+        "น้ำปลา",
+        "มะนาว",
+        "เห็ด"
+      ],
+      "allergens": [
+        "shellfish",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ต้มข่าไก่",
+      "name_en": "Tom Kha Gai",
+      "aliases": [
+        "tom kha",
+        "ต้มข่า"
+      ],
+      "ingredients": [
+        "ไก่",
+        "กะทิ",
+        "ข่า",
+        "ตะไคร้",
+        "ใบมะกรูด",
+        "น้ำปลา",
+        "พริก"
+      ],
+      "allergens": [
+        "coconut",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ผัดกะเพราหมู",
+      "name_en": "Pad Kra Pao Moo",
+      "aliases": [
+        "กะเพราหมู",
+        "ผัดกะเพรา",
+        "ผัดกระเพรา",
+        "kra pao",
+        "pad kra pao",
+        "basil pork"
+      ],
+      "ingredients": [
+        "หมูสับ",
+        "ใบกะเพรา",
+        "พริก",
+        "กระเทียม",
+        "ซีอิ๊ว",
+        "น้ำปลา",
+        "น้ำมันหอย"
+      ],
+      "allergens": [
+        "soy",
+        "fish",
+        "shellfish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ผัดกะเพราไก่ไข่ดาว",
+      "name_en": "Pad Kra Pao Gai Kai Dao",
+      "aliases": [
+        "กะเพราไก่ไข่ดาว",
+        "กะเพราไก่"
+      ],
+      "ingredients": [
+        "ไก่สับ",
+        "ใบกะเพรา",
+        "พริก",
+        "กระเทียม",
+        "ซีอิ๊ว",
+        "น้ำปลา",
+        "น้ำมันหอย",
+        "ไข่ดาว"
+      ],
+      "allergens": [
+        "soy",
+        "fish",
+        "shellfish",
+        "spicy",
+        "egg"
+      ]
+    },
+    {
+      "name_th": "ส้มตำไทย",
+      "name_en": "Som Tum Thai",
+      "aliases": [
+        "som tum thai",
+        "papaya salad"
+      ],
+      "ingredients": [
+        "มะละกอ",
+        "กุ้งแห้ง",
+        "ถั่วลิสง",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา",
+        "น้ำตาลปี๊บ",
+        "กระเทียม",
+        "มะเขือเทศ"
+      ],
+      "allergens": [
+        "shellfish",
+        "peanut",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ส้มตำปูปลาร้า",
+      "name_en": "Som Tum Pu Pla Ra",
+      "aliases": [
+        "ส้มตำปลาร้า"
+      ],
+      "ingredients": [
+        "มะละกอ",
+        "ปูดอง",
+        "ปลาร้า",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา",
+        "กระเทียม"
+      ],
+      "allergens": [
+        "shellfish",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ข้าวซอยไก่",
+      "name_en": "Khao Soi Gai",
+      "aliases": [
+        "ข้าวซอย",
+        "khao soi"
+      ],
+      "ingredients": [
+        "บะหมี่ไข่",
+        "ไก่",
+        "กะทิ",
+        "พริกแกง",
+        "ไข่",
+        "หอม",
+        "ผักดอง"
+      ],
+      "allergens": [
+        "gluten",
+        "egg",
+        "coconut",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "แกงเขียวหวานไก่",
+      "name_en": "Green Curry Chicken",
+      "aliases": [
+        "แกงเขียวหวาน",
+        "เขียวหวานไก่",
+        "green curry"
+      ],
+      "ingredients": [
+        "ไก่",
+        "กะทิ",
+        "พริกแกงเขียวหวาน",
+        "มะเขือ",
+        "ใบโหระพา",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "coconut",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "แกงมัสมั่นเนื้อ",
+      "name_en": "Massaman Curry Beef",
+      "aliases": [
+        "มัสมั่น",
+        "massaman",
+        "แกงมัสมั่น"
+      ],
+      "ingredients": [
+        "เนื้อ",
+        "กะทิ",
+        "ถั่วลิสง",
+        "มันฝรั่ง",
+        "พริกแกงมัสมั่น",
+        "หอมใหญ่",
+        "น้ำมะขาม"
+      ],
+      "allergens": [
+        "coconut",
+        "peanut",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ผัดซีอิ๊ว",
+      "name_en": "Pad See Ew",
+      "aliases": [
+        "pad see ew",
+        "ผัดซีอิ๊วหมู",
+        "ผัดซีอิ๊วไก่"
+      ],
+      "ingredients": [
+        "เส้นใหญ่",
+        "หมู",
+        "ไข่",
+        "ผักคะน้า",
+        "ซีอิ๊วดำ",
+        "ซีอิ๊วขาว",
+        "กระเทียม"
+      ],
+      "allergens": [
+        "gluten",
+        "egg",
+        "soy"
+      ]
+    },
+    {
+      "name_th": "ราดหน้าหมู",
+      "name_en": "Rad Na Moo",
+      "aliases": [
+        "ราดหน้า",
+        "rad na"
+      ],
+      "ingredients": [
+        "เส้นใหญ่",
+        "หมู",
+        "ผักคะน้า",
+        "ซีอิ๊ว",
+        "น้ำมันหอย",
+        "แป้งมัน"
+      ],
+      "allergens": [
+        "gluten",
+        "soy",
+        "shellfish"
+      ]
+    },
+    {
+      "name_th": "ก๋วยเตี๋ยวเรือ",
+      "name_en": "Boat Noodle",
+      "aliases": [
+        "ก๋วยเตี๋ยวเรือหมู",
+        "ก๋วยเตี๋ยวเรือเนื้อ",
+        "boat noodle"
+      ],
+      "ingredients": [
+        "เส้นเล็ก",
+        "หมู/เนื้อ",
+        "ลูกชิ้น",
+        "เลือดหมู",
+        "ผักบุ้ง",
+        "ถั่วงอก",
+        "เครื่องปรุง"
+      ],
+      "allergens": [
+        "gluten",
+        "soy",
+        "fish"
+      ]
+    },
+    {
+      "name_th": "ข้าวมันไก่",
+      "name_en": "Khao Man Gai",
+      "aliases": [
+        "khao man gai",
+        "chicken rice"
+      ],
+      "ingredients": [
+        "ข้าว",
+        "ไก่ต้ม",
+        "น้ำซุปไก่",
+        "ขิง",
+        "เต้าเจี้ยว",
+        "พริก"
+      ],
+      "allergens": [
+        "soy"
+      ]
+    },
+    {
+      "name_th": "ข้าวหมูแดง",
+      "name_en": "Khao Moo Daeng",
+      "aliases": [
+        "หมูแดง"
+      ],
+      "ingredients": [
+        "ข้าว",
+        "หมูแดง",
+        "ไข่ต้ม",
+        "น้ำราด",
+        "แตงกวา"
+      ],
+      "allergens": [
+        "egg",
+        "soy"
+      ]
+    },
+    {
+      "name_th": "ข้าวขาหมู",
+      "name_en": "Khao Kha Moo",
+      "aliases": [
+        "ขาหมู",
+        "khao kha moo"
+      ],
+      "ingredients": [
+        "ข้าว",
+        "ขาหมูพะโล้",
+        "ไข่พะโล้",
+        "ผักดอง",
+        "น้ำจิ้มแจ่ว"
+      ],
+      "allergens": [
+        "egg",
+        "soy"
+      ]
+    },
+    {
+      "name_th": "ลาบหมู",
+      "name_en": "Larb Moo",
+      "aliases": [
+        "larb moo",
+        "laab moo"
+      ],
+      "ingredients": [
+        "หมูสับ",
+        "ข้าวคั่ว",
+        "พริกป่น",
+        "หอมแดง",
+        "ใบสะระแหน่",
+        "มะนาว",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ลาบไก่",
+      "name_en": "Larb Gai",
+      "aliases": [
+        "larb gai"
+      ],
+      "ingredients": [
+        "ไก่สับ",
+        "ข้าวคั่ว",
+        "พริกป่น",
+        "หอมแดง",
+        "ใบสะระแหน่",
+        "มะนาว",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ลาบเนื้อ",
+      "name_en": "Larb Nuea",
+      "aliases": [
+        "larb nuea",
+        "laab nuea"
+      ],
+      "ingredients": [
+        "เนื้อสับ",
+        "ข้าวคั่ว",
+        "พริกป่น",
+        "หอมแดง",
+        "ใบสะระแหน่",
+        "มะนาว",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ลาบเป็ด",
+      "name_en": "Larb Ped",
+      "aliases": [
+        "larb ped"
+      ],
+      "ingredients": [
+        "เป็ดสับ",
+        "ข้าวคั่ว",
+        "พริกป่น",
+        "หอมแดง",
+        "ใบสะระแหน่",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ลาบปลาดุก",
+      "name_en": "Larb Pla Duk",
+      "aliases": [],
+      "ingredients": [
+        "ปลาดุก",
+        "ข้าวคั่ว",
+        "พริกป่น",
+        "หอมแดง",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "น้ำตกหมู",
+      "name_en": "Nam Tok Moo",
+      "aliases": [
+        "nam tok moo"
+      ],
+      "ingredients": [
+        "หมูย่าง",
+        "ข้าวคั่ว",
+        "พริกป่น",
+        "หอมแดง",
+        "ใบสะระแหน่",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "น้ำตกไก่",
+      "name_en": "Nam Tok Gai",
+      "aliases": [
+        "nam tok gai"
+      ],
+      "ingredients": [
+        "ไก่ย่าง",
+        "ข้าวคั่ว",
+        "พริกป่น",
+        "หอมแดง",
+        "ใบสะระแหน่",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "น้ำตกเนื้อ",
+      "name_en": "Nam Tok Nuea",
+      "aliases": [
+        "nam tok nuea"
+      ],
+      "ingredients": [
+        "เนื้อย่าง",
+        "ข้าวคั่ว",
+        "พริกป่น",
+        "หอมแดง",
+        "ใบสะระแหน่",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ส้มตำปู",
+      "name_en": "Som Tum Pu",
+      "aliases": [
+        "som tum pu"
+      ],
+      "ingredients": [
+        "มะละกอ",
+        "ปูดอง",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา",
+        "กระเทียม",
+        "มะเขือเทศ"
+      ],
+      "allergens": [
+        "shellfish",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ส้มตำกุ้งสด",
+      "name_en": "Som Tum Goong Sod",
+      "aliases": [
+        "ส้มตำกุ้ง",
+        "som tum goong"
+      ],
+      "ingredients": [
+        "มะละกอ",
+        "กุ้งสด",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา",
+        "กระเทียม",
+        "มะเขือเทศ"
+      ],
+      "allergens": [
+        "shellfish",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ส้มตำไข่เค็ม",
+      "name_en": "Som Tum Khai Khem",
+      "aliases": [],
+      "ingredients": [
+        "มะละกอ",
+        "ไข่เค็ม",
+        "ถั่วลิสง",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา",
+        "กระเทียม"
+      ],
+      "allergens": [
+        "egg",
+        "peanut",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ส้มตำมั่ว",
+      "name_en": "Som Tum Mua",
+      "aliases": [],
+      "ingredients": [
+        "มะละกอ",
+        "ปลาร้า",
+        "ปูดอง",
+        "ถั่วลิสง",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "shellfish",
+        "peanut",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ต้มแซ่บหมู",
+      "name_en": "Tom Saap Moo",
+      "aliases": [
+        "ต้มแซ่บ",
+        "tom saap"
+      ],
+      "ingredients": [
+        "กระดูกหมู",
+        "ตะไคร้",
+        "ใบมะกรูด",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ต้มแซ่บไก่",
+      "name_en": "Tom Saap Gai",
+      "aliases": [],
+      "ingredients": [
+        "ไก่",
+        "ตะไคร้",
+        "ใบมะกรูด",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ต้มแซ่บเนื้อ",
+      "name_en": "Tom Saap Nuea",
+      "aliases": [],
+      "ingredients": [
+        "เนื้อ",
+        "ตะไคร้",
+        "ใบมะกรูด",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ต้มแซ่บปลา",
+      "name_en": "Tom Saap Pla",
+      "aliases": [],
+      "ingredients": [
+        "ปลา",
+        "ตะไคร้",
+        "ใบมะกรูด",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ต้มจืด",
+      "name_en": "Tom Jued",
+      "aliases": [
+        "ต้มจืดหมูสับ"
+      ],
+      "ingredients": [
+        "หมูสับ",
+        "ผัก",
+        "เต้าหู้",
+        "วุ้นเส้น",
+        "ซีอิ๊ว"
+      ],
+      "allergens": [
+        "soy"
+      ]
+    },
+    {
+      "name_th": "ต้มไก่น้ำปลา",
+      "name_en": "Tom Gai Nam Pla",
+      "aliases": [],
+      "ingredients": [
+        "ไก่",
+        "น้ำปลา",
+        "กระเทียม",
+        "พริกไทย"
+      ],
+      "allergens": [
+        "fish"
+      ]
+    },
+    {
+      "name_th": "ไก่ทอด",
+      "name_en": "Fried Chicken",
+      "aliases": [
+        "ไก่ทอดหาดใหญ่"
+      ],
+      "ingredients": [
+        "ไก่",
+        "แป้งสาลี",
+        "กระเทียมเจียว",
+        "ซีอิ๊ว"
+      ],
+      "allergens": [
+        "gluten",
+        "soy"
+      ]
+    },
+    {
+      "name_th": "หมูทอดกระเทียม",
+      "name_en": "Moo Tod Kratiem",
+      "aliases": [
+        "หมูกระเทียม"
+      ],
+      "ingredients": [
+        "หมู",
+        "กระเทียม",
+        "พริกไทย",
+        "ซีอิ๊ว",
+        "น้ำมันหอย"
+      ],
+      "allergens": [
+        "soy",
+        "shellfish"
+      ]
+    },
+    {
+      "name_th": "ปอเปี๊ยะทอด",
+      "name_en": "Fried Spring Roll",
+      "aliases": [
+        "ปอเปี๊ยะ",
+        "spring roll"
+      ],
+      "ingredients": [
+        "แป้งปอเปี๊ยะ",
+        "หมูสับ",
+        "วุ้นเส้น",
+        "ผัก",
+        "น้ำจิ้ม"
+      ],
+      "allergens": [
+        "gluten",
+        "soy"
+      ]
+    },
+    {
+      "name_th": "ทอดมันปลา",
+      "name_en": "Tod Mun Pla",
+      "aliases": [
+        "ทอดมัน",
+        "fish cake"
+      ],
+      "ingredients": [
+        "ปลา",
+        "พริกแกง",
+        "ใบมะกรูด",
+        "ถั่วฝักยาว",
+        "ไข่"
+      ],
+      "allergens": [
+        "fish",
+        "egg",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ยำวุ้นเส้น",
+      "name_en": "Yum Woon Sen",
+      "aliases": [
+        "yum woon sen",
+        "glass noodle salad"
+      ],
+      "ingredients": [
+        "วุ้นเส้น",
+        "กุ้ง",
+        "หมูสับ",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา",
+        "ขึ้นฉ่าย"
+      ],
+      "allergens": [
+        "shellfish",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ข้าวผัด",
+      "name_en": "Fried Rice",
+      "aliases": [
+        "fried rice",
+        "ข้าวผัดหมู",
+        "ข้าวผัดกุ้ง",
+        "ข้าวผัดไก่"
+      ],
+      "ingredients": [
+        "ข้าว",
+        "ไข่",
+        "ซีอิ๊ว",
+        "น้ำปลา",
+        "หอมใหญ่",
+        "ต้นหอม"
+      ],
+      "allergens": [
+        "egg",
+        "soy",
+        "fish"
+      ]
+    },
+    {
+      "name_th": "ข้าวผัดกุ้ง",
+      "name_en": "Shrimp Fried Rice",
+      "aliases": [
+        "ข้าวผัดกุ้งสด"
+      ],
+      "ingredients": [
+        "ข้าว",
+        "กุ้ง",
+        "ไข่",
+        "ซีอิ๊ว",
+        "น้ำปลา"
+      ],
+      "allergens": [
+        "shellfish",
+        "egg",
+        "soy",
+        "fish"
+      ]
+    },
+    {
+      "name_th": "หอยทอด",
+      "name_en": "Hoy Tod",
+      "aliases": [
+        "ออส่วน",
+        "oyster omelette"
+      ],
+      "ingredients": [
+        "หอยนางรม",
+        "แป้ง",
+        "ไข่",
+        "ถั่วงอก"
+      ],
+      "allergens": [
+        "shellfish",
+        "gluten",
+        "egg"
+      ]
+    },
+    {
+      "name_th": "ก๋วยเตี๋ยวต้มยำ",
+      "name_en": "Tom Yum Noodle",
+      "aliases": [
+        "ต้มยำเส้น",
+        "ก๋วยเตี๋ยวต้มยำกุ้ง"
+      ],
+      "ingredients": [
+        "เส้น",
+        "กุ้ง/หมู",
+        "ถั่วลิสง",
+        "พริก",
+        "มะนาว",
+        "น้ำปลา",
+        "น้ำตาล"
+      ],
+      "allergens": [
+        "gluten",
+        "shellfish",
+        "peanut",
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ผัดผักรวม",
+      "name_en": "Stir-fried Mixed Vegetables",
+      "aliases": [
+        "ผัดผัก"
+      ],
+      "ingredients": [
+        "ผักรวม",
+        "กระเทียม",
+        "น้ำมันหอย",
+        "ซีอิ๊ว"
+      ],
+      "allergens": [
+        "soy",
+        "shellfish"
+      ]
+    },
+    {
+      "name_th": "ไข่เจียว",
+      "name_en": "Thai Omelette",
+      "aliases": [
+        "ไข่เจียวหมูสับ",
+        "omelette"
+      ],
+      "ingredients": [
+        "ไข่",
+        "หมูสับ",
+        "น้ำปลา",
+        "ต้นหอม"
+      ],
+      "allergens": [
+        "egg",
+        "fish"
+      ]
+    },
+    {
+      "name_th": "สเต็กเนื้อ",
+      "name_en": "Beef Steak",
+      "aliases": [
+        "beef steak",
+        "steak"
+      ],
+      "ingredients": [
+        "เนื้อ",
+        "เนย",
+        "ซอสพริกไทย",
+        "มันฝรั่ง"
+      ],
+      "allergens": [
+        "dairy"
+      ]
+    },
+    {
+      "name_th": "สปาเก็ตตี้",
+      "name_en": "Spaghetti",
+      "aliases": [
+        "spaghetti",
+        "pasta",
+        "พาสต้า"
+      ],
+      "ingredients": [
+        "เส้นสปาเก็ตตี้",
+        "ซอสมะเขือเทศ",
+        "ชีส",
+        "เนย",
+        "กระเทียม"
+      ],
+      "allergens": [
+        "gluten",
+        "dairy"
+      ]
+    },
+    {
+      "name_th": "พิซซ่า",
+      "name_en": "Pizza",
+      "aliases": [
+        "pizza"
+      ],
+      "ingredients": [
+        "แป้ง",
+        "ซอสมะเขือเทศ",
+        "ชีส",
+        "เนื้อสัตว์",
+        "ผัก"
+      ],
+      "allergens": [
+        "gluten",
+        "dairy"
+      ]
+    },
+    {
+      "name_th": "ราเมง",
+      "name_en": "Ramen",
+      "aliases": [
+        "ramen",
+        "ราเม็ง"
+      ],
+      "ingredients": [
+        "บะหมี่",
+        "ซุป",
+        "หมูชาชู",
+        "ไข่",
+        "สาหร่าย",
+        "ต้นหอม"
+      ],
+      "allergens": [
+        "gluten",
+        "egg",
+        "soy"
+      ]
+    },
+    {
+      "name_th": "ซูชิ",
+      "name_en": "Sushi",
+      "aliases": [
+        "sushi"
+      ],
+      "ingredients": [
+        "ข้าว",
+        "ปลาดิบ",
+        "สาหร่าย",
+        "วาซาบิ",
+        "ซีอิ๊วญี่ปุ่น"
+      ],
+      "allergens": [
+        "fish",
+        "soy",
+        "shellfish"
+      ]
+    },
+    {
+      "name_th": "เกี๊ยวซ่า",
+      "name_en": "Gyoza",
+      "aliases": [
+        "gyoza",
+        "ทอดมันเกี๊ยว"
+      ],
+      "ingredients": [
+        "แป้งเกี๊ยว",
+        "หมูสับ",
+        "ผัก",
+        "กระเทียม",
+        "ซีอิ๊ว"
+      ],
+      "allergens": [
+        "gluten",
+        "soy"
+      ]
+    },
+    {
+      "name_th": "ไก่ผัดเม็ดมะม่วง",
+      "name_en": "Cashew Chicken",
+      "aliases": [
+        "ไก่เม็ดมะม่วง",
+        "cashew chicken"
+      ],
+      "ingredients": [
+        "ไก่",
+        "เม็ดมะม่วงหิมพานต์",
+        "พริกแห้ง",
+        "ซีอิ๊ว",
+        "น้ำมันหอย"
+      ],
+      "allergens": [
+        "tree_nut",
+        "soy",
+        "shellfish"
+      ]
+    },
+    {
+      "name_th": "ปลาราดพริก",
+      "name_en": "Fish with Chili Sauce",
+      "aliases": [
+        "ปลาทอดราดพริก"
+      ],
+      "ingredients": [
+        "ปลา",
+        "พริก",
+        "กระเทียม",
+        "น้ำปลา",
+        "น้ำมะขาม"
+      ],
+      "allergens": [
+        "fish",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "ขนมจีนน้ำยา",
+      "name_en": "Khanom Jeen Nam Ya",
+      "aliases": [
+        "ขนมจีน"
+      ],
+      "ingredients": [
+        "เส้นขนมจีน",
+        "ปลา",
+        "กะทิ",
+        "พริกแกง",
+        "ผักเครื่องเคียง"
+      ],
+      "allergens": [
+        "fish",
+        "coconut",
+        "spicy"
+      ]
+    },
+    {
+      "name_th": "บัวลอย",
+      "name_en": "Bua Loy",
+      "aliases": [
+        "บัวลอยไข่หวาน"
+      ],
+      "ingredients": [
+        "แป้งข้าวเหนียว",
+        "กะทิ",
+        "น้ำตาล",
+        "ไข่"
+      ],
+      "allergens": [
+        "coconut",
+        "egg"
+      ]
+    },
+    {
+      "name_th": "ข้าวเหนียวมะม่วง",
+      "name_en": "Mango Sticky Rice",
+      "aliases": [
+        "mango sticky rice"
+      ],
+      "ingredients": [
+        "ข้าวเหนียว",
+        "มะม่วง",
+        "กะทิ",
+        "น้ำตาล",
+        "งา"
+      ],
+      "allergens": [
+        "coconut",
+        "sesame"
+      ]
+    }
+  ]
+}

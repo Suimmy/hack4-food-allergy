@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Allergy Alert — เช็คเมนูอาหารแพ้</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🛡️🍜</span>
+      <div>
+        <h1>Allergy Alert</h1>
+        <p class="tagline">ถ่ายรูปเมนู เช็ควัตถุดิบ หลีกเลี่ยงสิ่งที่แพ้</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>1. เลือกสารก่อภูมิแพ้ของคุณ</h2>
+      <p class="hint">ติ๊กรายการที่คุณแพ้ ระบบจะแจ้งเตือนเมื่อเจอในเมนู</p>
+      <div id="allergyList" class="chips"></div>
+    </section>
+
+    <section class="card">
+      <h2>2. ถ่ายรูป / อัปโหลดเมนู</h2>
+      <p class="hint">ใช้กล้องถ่ายชื่อเมนูในร้าน หรืออัปโหลดรูปจากเครื่อง</p>
+
+      <div class="upload-row">
+        <label class="btn primary">
+          📷 ถ่ายรูป
+          <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden />
+        </label>
+        <label class="btn secondary">
+          🖼️ อัปโหลดรูป
+          <input type="file" id="fileInput" accept="image/*" hidden />
+        </label>
+      </div>
+
+      <div id="previewWrap" class="preview-wrap hidden">
+        <img id="preview" alt="preview" />
+        <button id="clearBtn" class="btn-clear" type="button">×</button>
+      </div>
+
+      <details class="manual">
+        <summary>หรือพิมพ์ชื่อเมนูเอง</summary>
+        <input type="text" id="textInput" placeholder="เช่น ผัดไทยกุ้งสด" />
+      </details>
+
+      <button id="analyzeBtn" class="btn primary big" type="button" disabled>
+        🔍 วิเคราะห์เมนู
+      </button>
+    </section>
+
+    <section id="resultSection" class="card hidden">
+      <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>กำลังวิเคราะห์เมนู...</p>
+      </div>
+
+      <div id="resultContent"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>ทำโดย Typhoon OCR + Typhoon LLM · ฐานข้อมูลอาหารไทย</p>
+  </footer>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
