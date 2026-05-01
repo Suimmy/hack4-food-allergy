@@ -707,18 +707,23 @@ async def analyze(
         }
         dishes.append(enrich_dish_result(result, user_allergies, user_custom))
 
-    # 2. For each LLM-extracted name not already covered, try local DB then LLM lookup
+    # 2. For each LLM-extracted name not already covered, try local DB then LLM lookup.
+    #    Dedup is by *query name* — different OCR'd names that fuzzy-match the same DB
+    #    dish should still each get their own card (they're different items on the menu).
     for name in extracted_names[:30]:
         norm = normalize(name)
         if not norm or norm in seen_dish_keys:
             continue
-        # Quick local lookup for this specific name
+        # Quick local exact lookup for this specific name
         local = find_dish_local(name)
         if local:
             local_key = normalize(local["name_th"])
+            # Skip only if THIS exact DB dish was already added (e.g. step 1 caught it
+            # via whole-text scan). The query may have been a different surface form.
             if local_key in seen_dish_keys:
                 continue
             seen_dish_keys.add(local_key)
+            seen_dish_keys.add(norm)
             result = {
                 "source": "local_db",
                 "dish_name_th": local["name_th"],
@@ -733,14 +738,14 @@ async def analyze(
             fuzzy = find_dish_fuzzy(name)
             if fuzzy:
                 d, ratio = fuzzy
-                fuzzy_key = normalize(d["name_th"])
-                if fuzzy_key in seen_dish_keys:
-                    continue
-                seen_dish_keys.add(fuzzy_key)
+                # Dedup by query (not DB key) — many OCR'd names may map to same DB dish.
+                # Show user the original OCR'd name + what it was matched to.
+                seen_dish_keys.add(norm)
                 result = {
                     "source": "local_db_fuzzy",
-                    "dish_name_th": d["name_th"],
-                    "dish_name_en": d["name_en"],
+                    "dish_name_th": name,
+                    "dish_name_en": d.get("name_en", ""),
+                    "matched_to": d["name_th"],
                     "query": name,
                     "match_ratio": round(ratio, 2),
                     "ingredients": d["ingredients"],

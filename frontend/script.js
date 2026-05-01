@@ -285,6 +285,10 @@ function renderDishCard(dish) {
     dishName = dish.dish_name_th || dish.query;
     dishSecondary = dish.dish_name_en;
   }
+  // For fuzzy matches, show what we matched it to as the secondary line
+  if (dish.source === "local_db_fuzzy" && dish.matched_to) {
+    dishSecondary = `≈ ${dish.matched_to}`;
+  }
 
   return `
     <div class="${cls}">
