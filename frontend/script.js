@@ -27,7 +27,7 @@ let lastResultData = null;
 // ----- language toggle -----
 applyTranslations();
 langToggle.addEventListener("click", () => {
-  setLang(currentLang === "th" ? "en" : "th");
+  setLang(nextLang());
 });
 document.addEventListener("langChanged", () => {
   renderAllergyChips(allergensList);
@@ -50,7 +50,7 @@ function renderAllergyChips(list) {
   allergyList.innerHTML = "";
   list.forEach((a) => {
     const chip = document.createElement("div");
-    const label = currentLang === "en" ? a.en : a.th;
+    const label = allergenLabel(a);
     chip.className = "chip" + (selectedAllergies.has(a.key) ? " active" : "");
     chip.innerHTML = `<span class="icon">${a.icon}</span><span>${escapeHtml(label)}</span>`;
     chip.addEventListener("click", () => {
@@ -172,7 +172,7 @@ function renderDishCard(dish) {
 
   const alertList = dish.alerts?.length
     ? `<ul class="alert-list">${dish.alerts
-        .map((a) => `<li class="badge">${a.icon} ${escapeHtml(currentLang === "en" ? a.en : a.th)}</li>`)
+        .map((a) => `<li class="badge">${a.icon} ${escapeHtml(allergenLabel(a))}</li>`)
         .join("")}</ul>`
     : "";
 
@@ -184,7 +184,7 @@ function renderDishCard(dish) {
 
   const allergens = dish.allergens_info?.length
     ? `<div class="allergen-summary">${dish.allergens_info
-        .map((a) => `<span class="allergen-tag">${a.icon} ${escapeHtml(currentLang === "en" ? a.en : a.th)}</span>`)
+        .map((a) => `<span class="allergen-tag">${a.icon} ${escapeHtml(allergenLabel(a))}</span>`)
         .join("")}</div>`
     : `<p class="hint inline">${t("no_allergens")}</p>`;
 
@@ -201,10 +201,16 @@ function renderDishCard(dish) {
     low: t("conf_low"),
   }[dish.confidence] || dish.confidence;
 
-  const dishName = currentLang === "en" && dish.dish_name_en
-    ? dish.dish_name_en
-    : (dish.dish_name_th || dish.query);
-  const dishSecondary = currentLang === "en" ? dish.dish_name_th : dish.dish_name_en;
+  // Primary dish name by current language; secondary is whichever is different
+  let dishName, dishSecondary;
+  if (currentLang === "en" && dish.dish_name_en) {
+    dishName = dish.dish_name_en;
+    dishSecondary = dish.dish_name_th;
+  } else {
+    // TH and ZH both default to Thai name (DB has no Chinese names yet)
+    dishName = dish.dish_name_th || dish.query;
+    dishSecondary = dish.dish_name_en;
+  }
 
   return `
     <div class="${cls}">

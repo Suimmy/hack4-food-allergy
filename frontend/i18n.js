@@ -1,3 +1,19 @@
+// Allergen key → name in each language. Used so we don't need to modify allergy.json.
+const ALLERGEN_LABELS_ZH = {
+  peanut: "花生",
+  tree_nut: "坚果",
+  shellfish: "贝类（虾/蟹/贝）",
+  fish: "鱼/鱼露",
+  egg: "鸡蛋",
+  dairy: "乳制品",
+  gluten: "麸质/小麦",
+  soy: "大豆/酱油",
+  sesame: "芝麻",
+  msg: "味精 (MSG)",
+  coconut: "椰子/椰浆",
+  spicy: "辣椒/辣",
+};
+
 const I18N = {
   th: {
     app_title: "Allergy Alert",
@@ -101,10 +117,65 @@ const I18N = {
     debug_ocr: "OCR text:",
     error_prefix: "❌ ",
   },
+  zh: {
+    app_title: "过敏警报",
+    tagline: "拍菜单照片，查看食材，避开过敏原",
+    step1_title: "1. 选择您的过敏原",
+    step1_hint: "勾选您过敏的项目，发现菜品含有时系统会提醒",
+    custom_label: "添加其他过敏原（可自行输入）",
+    custom_placeholder: "例如：芒果、蘑菇、香菜",
+    add: "添加",
+    step2_title: "2. 拍照 / 上传菜单",
+    step2_hint: "用相机拍下店里的菜单，或从设备上传图片",
+    take_photo: "📷 拍照",
+    upload_photo: "🖼️ 上传",
+    or_type: "或自己输入菜名",
+    type_placeholder: "例如：泰式炒河粉配虾",
+    analyze_btn: "🔍 分析菜单",
+    loading: "正在分析...",
+    footer: "由 Typhoon OCR + Typhoon LLM 提供 · 泰国食物数据库",
+
+    alert_title_multi_some: "在 {total} 道菜中发现 {alerted} 道含您过敏原",
+    alert_desc_multi_some: "向下滚动查看详情 — 请避开标有 ⚠️ 的菜品",
+    alert_title_multi_safe: "安全 — 没有菜品含您选择的过敏原",
+    alert_desc_multi_safe: "已分析 {total} 道菜，均不含您勾选的过敏原",
+    alert_title_multi_info: "已分析 {total} 道菜",
+    alert_desc_multi_info: "请在上方选择您的过敏原以获取提醒",
+    alert_title_single_warn: "警告！这道菜含有您的过敏原",
+    alert_desc_single_warn: "发现 {n} 种过敏原 — 建议避开",
+    alert_title_single_safe: "安全",
+    alert_desc_single_safe: "未发现您勾选的过敏原",
+
+    section_alerted: "⚠️ 含过敏原的菜品 ({n})",
+    section_safe: "✅ 安全菜品 ({n})",
+    see_details: "查看详情",
+    ingredients_label: "主要食材",
+    no_ingredients: "暂无食材信息",
+    allergens_label: "可能含有的过敏原",
+    no_allergens: "未检测到过敏原",
+    source_db: "📚 数据库",
+    source_db_fuzzy: "📚 数据库 (相似)",
+    source_ai: "🤖 AI",
+    source_web: "🌐 网络+AI",
+    conf_high: "高准确度",
+    conf_medium: "中等准确度",
+    conf_low: "低准确度",
+
+    debug_summary: "🔍 检测到的内容",
+    debug_db_match: "数据库匹配：{db} 道菜 · LLM 提取：{llm} 个名称",
+    debug_llm_names: "LLM 提取的名称：",
+    debug_no_llm: "LLM 未返回菜单名称",
+    debug_ocr: "OCR 文本：",
+    error_prefix: "❌ ",
+  },
 };
 
 const LANG_KEY = "allergy_app_lang";
+const LANG_CYCLE = ["th", "en", "zh"];
+const LANG_BUTTON_LABEL = { th: "ไทย", en: "EN", zh: "中文" };
+
 let currentLang = localStorage.getItem(LANG_KEY) || "th";
+if (!LANG_CYCLE.includes(currentLang)) currentLang = "th";
 
 function t(key, vars = {}) {
   let str = (I18N[currentLang] && I18N[currentLang][key]) || key;
@@ -114,26 +185,39 @@ function t(key, vars = {}) {
   return str;
 }
 
+// Returns the localized name for an allergen, falling back gracefully.
+function allergenLabel(a) {
+  if (!a) return "";
+  if (currentLang === "zh") {
+    const key = a.key && a.key.startsWith("custom:") ? null : a.key;
+    return (key && ALLERGEN_LABELS_ZH[key]) || a.en || a.th || "";
+  }
+  if (currentLang === "en") return a.en || a.th || "";
+  return a.th || a.en || "";
+}
+
+function nextLang() {
+  const idx = LANG_CYCLE.indexOf(currentLang);
+  return LANG_CYCLE[(idx + 1) % LANG_CYCLE.length];
+}
+
 function applyTranslations() {
   document.documentElement.lang = currentLang;
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     el.textContent = t(key);
   });
-  // Placeholders
   const customInput = document.getElementById("customInput");
   if (customInput) customInput.placeholder = t("custom_placeholder");
   const textInput = document.getElementById("textInput");
   if (textInput) textInput.placeholder = t("type_placeholder");
-  // Toggle button shows the OTHER language
   const btn = document.getElementById("langToggle");
-  if (btn) btn.textContent = currentLang === "th" ? "EN" : "TH";
+  if (btn) btn.textContent = LANG_BUTTON_LABEL[nextLang()];
 }
 
 function setLang(lang) {
   currentLang = lang;
   localStorage.setItem(LANG_KEY, lang);
   applyTranslations();
-  // Notify app to re-render
   document.dispatchEvent(new CustomEvent("langChanged", { detail: lang }));
 }

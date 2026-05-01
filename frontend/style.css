@@ -45,13 +45,15 @@ body {
   background: rgba(255, 255, 255, 0.2);
   border: 1.5px solid rgba(255, 255, 255, 0.4);
   color: white;
-  padding: 0.4rem 0.85rem;
+  padding: 0.4rem 0.75rem;
+  min-width: 56px;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   transition: background 0.15s;
+  white-space: nowrap;
 }
 .lang-toggle:hover { background: rgba(255, 255, 255, 0.3); }
 
