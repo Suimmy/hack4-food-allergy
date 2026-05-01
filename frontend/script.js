@@ -16,7 +16,6 @@ const analyzeBtn = document.getElementById("analyzeBtn");
 const resultSection = document.getElementById("resultSection");
 const resultContent = document.getElementById("resultContent");
 const loading = document.getElementById("loading");
-const langToggle = document.getElementById("langToggle");
 
 let selectedAllergies = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"));
 let customAllergies = JSON.parse(localStorage.getItem(CUSTOM_KEY) || "[]");
@@ -26,8 +25,8 @@ let lastResultData = null;
 
 // ----- language toggle -----
 applyTranslations();
-langToggle.addEventListener("click", () => {
-  setLang(nextLang());
+document.querySelectorAll(".lang-btn").forEach((btn) => {
+  btn.addEventListener("click", () => setLang(btn.dataset.lang));
 });
 document.addEventListener("langChanged", () => {
   renderAllergyChips(allergensList);

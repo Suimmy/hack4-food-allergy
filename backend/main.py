@@ -78,20 +78,43 @@ def find_dish_local(text: str) -> Optional[dict]:
     return best
 
 
-def find_dish_fuzzy(name: str, threshold: float = 0.72) -> Optional[tuple[dict, float]]:
-    """Fuzzy match a name against DB using SequenceMatcher.
+# Common Thai food stems (base dish words). When two dish names share a long
+# stem like "กะเพรา" or "ส้มตำ", they're variants of the same dish — only the
+# protein differs. Used by find_dish_fuzzy to recognize "กะเพราหมู" ≈ "กะเพราไก่".
+_PROTEIN_WORDS = (
+    "หมู", "ไก่", "เนื้อ", "กุ้ง", "ปลา", "ปู", "หอย", "ปลาหมึก",
+    "เป็ด", "ทะเล", "กระดูกอ่อน", "ลูกชิ้น", "เห็ด", "เต้าหู้", "ไข่",
+)
 
-    Useful for OCR errors:
-      "ส้มตำปูปลา"  → matches "ส้มตำปูปลาร้า" (truncated)
-      "ต้มจี๊ด"    → matches "ต้มจืด"        (vowel confusion)
 
-    Returns (dish, ratio) or None if no candidate exceeds threshold.
+def _strip_protein_suffix(s: str) -> str:
+    """Remove a trailing protein word so 'กะเพราหมู' → 'กะเพรา'."""
+    for p in _PROTEIN_WORDS:
+        if s.endswith(p) and len(s) > len(p) + 1:
+            return s[: -len(p)]
+    return s
+
+
+def find_dish_fuzzy(name: str, threshold: float = 0.65) -> Optional[tuple[dict, float]]:
+    """Fuzzy match a name against DB. Handles three OCR/menu cases:
+
+    1. OCR truncation:    "ส้มตำปูปลา"  → "ส้มตำปูปลาร้า"
+    2. Vowel confusion:   "ต้มจี๊ด"     → "ต้มจืด"
+    3. Protein variant:   "ส้มตำหมู"    → "ส้มตำปู"      (same base, diff protein)
+                          "กะเพราไก่"   → "ผัดกะเพราหมู"  (same base, diff protein)
+
+    Score is max of:
+      - SequenceMatcher.ratio()        (overall similarity)
+      - Longest common substring frac  (catches shared stems)
+      - Stripped-protein ratio          (catches variants)
+      - Prefix bonus 0.88               (one is prefix of the other)
     """
     if not name:
         return None
     target = normalize(name)
     if len(target) < 3:
         return None
+    target_stem = _strip_protein_suffix(target)
 
     best: Optional[tuple[dict, float]] = None
     for dish in FOODS["dishes"]:
@@ -100,10 +123,38 @@ def find_dish_fuzzy(name: str, threshold: float = 0.72) -> Optional[tuple[dict, 
             nc = normalize(cand)
             if not nc or len(nc) < 3:
                 continue
-            ratio = SequenceMatcher(None, target, nc).ratio()
-            # Prefix bonus: if one is a prefix of the other, boost score
+
+            sm = SequenceMatcher(None, target, nc)
+            ratio = sm.ratio()
+
+            # Longest common substring as fraction of the shorter string —
+            # catches "กะเพราหมู" vs "ผัดกะเพราไก่" sharing "กะเพรา".
+            # Only boost when the LCS is at the START of at least one string,
+            # since Thai dish names put the base ("กะเพรา", "ส้มตำ", "ลาบ") first
+            # and the protein last. End-shared substrings like "ปิ้ง" in
+            # "หมูปิ้ง" vs "ขนมปังปิ้ง" are cooking methods, not the same dish.
+            match = sm.find_longest_match(0, len(target), 0, len(nc))
+            shorter = min(len(target), len(nc))
+            lcs_frac = match.size / shorter if shorter else 0.0
+            lcs_at_start = match.a == 0 or match.b == 0
+            if match.size >= 4 and lcs_frac >= 0.55 and lcs_at_start:
+                ratio = max(ratio, 0.78)
+
+            # Same stem after stripping protein suffix → variant of same dish
+            nc_stem = _strip_protein_suffix(nc)
+            if (
+                target_stem
+                and nc_stem
+                and len(target_stem) >= 3
+                and len(nc_stem) >= 3
+                and (target_stem == nc_stem or target_stem in nc_stem or nc_stem in target_stem)
+            ):
+                ratio = max(ratio, 0.82)
+
+            # Prefix bonus
             if target.startswith(nc) or nc.startswith(target):
-                ratio = max(ratio, 0.85)
+                ratio = max(ratio, 0.88)
+
             if ratio >= threshold and (best is None or ratio > best[1]):
                 best = (dish, ratio)
     return best

@@ -211,8 +211,10 @@ function applyTranslations() {
   if (customInput) customInput.placeholder = t("custom_placeholder");
   const textInput = document.getElementById("textInput");
   if (textInput) textInput.placeholder = t("type_placeholder");
-  const btn = document.getElementById("langToggle");
-  if (btn) btn.textContent = LANG_BUTTON_LABEL[nextLang()];
+  // Toggle "active" class on the 3 lang buttons
+  document.querySelectorAll(".lang-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.lang === currentLang);
+  });
 }
 
 function setLang(lang) {
