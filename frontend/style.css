@@ -296,6 +296,47 @@ body {
   line-height: 1;
 }
 
+.size-info {
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  background: rgba(0, 0, 0, 0.04);
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: center;
+}
+.size-info.resized {
+  background: var(--safe-bg);
+  color: var(--safe);
+  font-weight: 600;
+}
+
+.photo-guidelines {
+  margin-top: 0.85rem;
+  padding: 0.7rem 0.9rem;
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #78350f;
+}
+
+.photo-guidelines .guideline-title {
+  margin: 0 0 0.3rem 0;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.photo-guidelines ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  line-height: 1.55;
+}
+
+.photo-guidelines li {
+  margin-bottom: 0.15rem;
+}
+
 .manual {
   margin-top: 0.85rem;
 }

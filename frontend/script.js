@@ -12,6 +12,7 @@ const textInput = document.getElementById("textInput");
 const previewWrap = document.getElementById("previewWrap");
 const preview = document.getElementById("preview");
 const clearBtn = document.getElementById("clearBtn");
+const sizeInfo = document.getElementById("sizeInfo");
 const analyzeBtn = document.getElementById("analyzeBtn");
 const resultSection = document.getElementById("resultSection");
 const resultContent = document.getElementById("resultContent");
@@ -102,12 +103,77 @@ customInput.addEventListener("keydown", (e) => {
 });
 
 // ----- image upload -----
-function setImageFile(file) {
+const RESIZE_MAX_LONG_EDGE = 1600;
+const RESIZE_QUALITY = 0.8;
+
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+async function resizeImage(file, maxLongEdge = RESIZE_MAX_LONG_EDGE, quality = RESIZE_QUALITY) {
+  // Skip resize for tiny files (already small) or non-image
+  if (!file.type.startsWith("image/") || file.size < 200 * 1024) {
+    return file;
+  }
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch (e) {
+    console.warn("createImageBitmap failed, sending original:", e);
+    return file;
+  }
+  const { width, height } = bitmap;
+  const scale = Math.min(1, maxLongEdge / Math.max(width, height));
+  if (scale === 1 && file.size < 1.5 * 1024 * 1024) {
+    bitmap.close?.();
+    return file;
+  }
+  const w = Math.round(width * scale);
+  const h = Math.round(height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close?.();
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return resolve(file);
+        const renamed = file.name.replace(/\.\w+$/, ".jpg");
+        resolve(new File([blob], renamed || "menu.jpg", { type: "image/jpeg" }));
+      },
+      "image/jpeg",
+      quality,
+    );
+  });
+}
+
+async function setImageFile(file) {
   if (!file) return;
-  currentImageFile = file;
+  textInput.value = "";
   preview.src = URL.createObjectURL(file);
   previewWrap.classList.remove("hidden");
-  textInput.value = "";
+  sizeInfo.textContent = "⏳";
+
+  const origSize = file.size;
+  const resized = await resizeImage(file);
+  currentImageFile = resized;
+
+  if (resized !== file && resized.size < origSize) {
+    sizeInfo.textContent = t("size_resized", {
+      orig: formatSize(origSize),
+      new: formatSize(resized.size),
+    });
+    sizeInfo.classList.add("resized");
+    // Update preview to the resized image so the user sees what's being sent
+    preview.src = URL.createObjectURL(resized);
+  } else {
+    sizeInfo.textContent = t("size_original", { size: formatSize(origSize) });
+    sizeInfo.classList.remove("resized");
+  }
   updateButtonState();
 }
 
@@ -116,6 +182,8 @@ function clearImage() {
   cameraInput.value = "";
   fileInput.value = "";
   preview.src = "";
+  sizeInfo.textContent = "";
+  sizeInfo.classList.remove("resized");
   previewWrap.classList.add("hidden");
   updateButtonState();
 }
