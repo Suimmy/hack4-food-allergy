@@ -169,22 +169,31 @@ async def typhoon_ocr(image_bytes: bytes, mime: str = "image/jpeg") -> str:
             )
 
 
-async def typhoon_lookup_ingredients(dish_name: str) -> dict:
-    """Ask Typhoon LLM to identify ingredients & allergens for an unknown dish."""
+async def typhoon_lookup_ingredients(dish_name: str, use_web: bool = True) -> dict:
+    """Ask Typhoon LLM to identify ingredients & allergens for an unknown dish.
+
+    If `use_web` is True, fetch web snippets via DuckDuckGo and feed as context (RAG).
+    """
     if not TYPHOON_API_KEY:
         return {"ingredients": [], "allergens": [], "confidence": "low"}
+
+    web_context = ""
+    if use_web:
+        web_context = await web_search_ingredients(dish_name)
 
     allergen_list = ", ".join(
         [f"{k} ({v['th']})" for k, v in FOODS["allergens"].items()]
     )
 
     system = (
-        "คุณเป็นผู้เชี่ยวชาญด้านอาหารไทย หน้าที่คือบอกวัตถุดิบหลักของเมนูอาหารอย่างย่อ "
+        "คุณเป็นผู้เชี่ยวชาญด้านอาหาร หน้าที่คือบอกวัตถุดิบหลักของเมนูอาหารอย่างย่อ "
         "และระบุสารก่อภูมิแพ้ที่อาจมี ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น"
     )
+    web_block = f"\nข้อมูลจากเว็บ:\n{web_context}\n" if web_context else ""
     user = (
         f"เมนู: {dish_name}\n"
-        f"รายการสารก่อภูมิแพ้ที่ต้องเลือกจาก (ใช้ key ภาษาอังกฤษ): {allergen_list}\n\n"
+        f"รายการสารก่อภูมิแพ้ที่ต้องเลือกจาก (ใช้ key ภาษาอังกฤษ): {allergen_list}"
+        f"{web_block}\n"
         "ตอบในรูปแบบ JSON นี้เท่านั้น:\n"
         '{"ingredients": ["วัตถุดิบ1", "วัตถุดิบ2", ...], '
         '"allergens": ["key1", "key2", ...], '
@@ -226,6 +235,8 @@ async def typhoon_lookup_ingredients(dish_name: str) -> dict:
         result = json.loads(m.group(0))
         known = set(FOODS["allergens"].keys())
         result["allergens"] = [a for a in result.get("allergens", []) if a in known]
+        if web_context:
+            result["used_web"] = True
         return result
     except json.JSONDecodeError:
         return {"ingredients": [], "allergens": [], "confidence": "low", "raw": content}
@@ -310,14 +321,57 @@ async def analyze_dish_name(name: str) -> dict:
     }
 
 
-def check_allergens(allergens_in_dish: list[str], user_allergies: list[str]) -> list[dict]:
-    """Return list of allergen objects the user is allergic to."""
-    matched = []
+def check_allergens(
+    allergens_in_dish: list[str],
+    user_allergies: list[str],
+    ingredients: list[str] | None = None,
+    custom_allergies: list[str] | None = None,
+) -> list[dict]:
+    """Return list of allergen alerts:
+    - Built-in allergen matches (key vs key)
+    - Custom allergen substring matches against the dish ingredients list
+    """
+    matched: list[dict] = []
     for a in allergens_in_dish:
         if a in user_allergies and a in FOODS["allergens"]:
             info = FOODS["allergens"][a]
-            matched.append({"key": a, **info})
+            matched.append({"key": a, "type": "builtin", **info})
+
+    if custom_allergies and ingredients:
+        ing_blob = " ".join(ingredients).lower()
+        for term in custom_allergies:
+            t = term.strip().lower()
+            if t and t in ing_blob:
+                matched.append({
+                    "key": f"custom:{term}",
+                    "type": "custom",
+                    "th": term,
+                    "en": term,
+                    "icon": "⚠️",
+                })
     return matched
+
+
+async def web_search_ingredients(dish_name: str, max_results: int = 3) -> str:
+    """Search the web for dish ingredients via DuckDuckGo. Returns concatenated snippets."""
+    try:
+        from ddgs import DDGS
+    except ImportError:
+        return ""
+
+    query = f"{dish_name} วัตถุดิบ ส่วนประกอบ"
+    snippets: list[str] = []
+    try:
+        with DDGS() as ddgs:
+            for r in ddgs.text(query, region="th-th", max_results=max_results):
+                title = r.get("title", "")
+                body = r.get("body", "")
+                if body:
+                    snippets.append(f"- {title}: {body}")
+    except Exception as e:
+        print(f"Web search failed: {e}")
+        return ""
+    return "\n".join(snippets)
 
 
 @app.get("/api/allergens")
@@ -329,9 +383,18 @@ async def get_allergens():
     ]
 
 
-def enrich_dish_result(result: dict, user_allergies: list[str]) -> dict:
+def enrich_dish_result(
+    result: dict,
+    user_allergies: list[str],
+    custom_allergies: list[str] | None = None,
+) -> dict:
     """Add alerts + allergen display info to a dish result."""
-    alerts = check_allergens(result["allergens_detected"], user_allergies)
+    alerts = check_allergens(
+        result["allergens_detected"],
+        user_allergies,
+        ingredients=result.get("ingredients", []),
+        custom_allergies=custom_allergies,
+    )
     result["alerts"] = alerts
     result["has_alert"] = len(alerts) > 0
     result["allergens_info"] = [
@@ -347,12 +410,19 @@ async def analyze(
     image: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
     allergies: str = Form("[]"),
+    custom_allergies: str = Form("[]"),
 ):
     """Receive image (menu photo) or text (single dish) and return dish analyses."""
     try:
         user_allergies = json.loads(allergies)
     except json.JSONDecodeError:
         user_allergies = []
+    try:
+        user_custom = json.loads(custom_allergies)
+        if not isinstance(user_custom, list):
+            user_custom = []
+    except json.JSONDecodeError:
+        user_custom = []
 
     ocr_text = ""
     is_menu = False  # True when an image was uploaded → may contain multiple dishes
@@ -399,7 +469,7 @@ async def analyze(
             "allergens_detected": d["allergens"],
             "confidence": "high",
         }
-        dishes.append(enrich_dish_result(result, user_allergies))
+        dishes.append(enrich_dish_result(result, user_allergies, user_custom))
 
     # 2. For each LLM-extracted name not already covered, try local DB then LLM lookup
     for name in extracted_names[:30]:
@@ -435,7 +505,7 @@ async def analyze(
                 "allergens_detected": llm_result.get("allergens", []),
                 "confidence": llm_result.get("confidence", "low"),
             }
-        dishes.append(enrich_dish_result(result, user_allergies))
+        dishes.append(enrich_dish_result(result, user_allergies, user_custom))
 
     alerted = [d for d in dishes if d["has_alert"]]
     safe = [d for d in dishes if not d["has_alert"]]

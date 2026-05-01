@@ -3,38 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Allergy Alert — เช็คเมนูอาหารแพ้</title>
+  <title>Allergy Alert</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
       <span class="logo">🛡️🍜</span>
-      <div>
-        <h1>Allergy Alert</h1>
-        <p class="tagline">ถ่ายรูปเมนู เช็ควัตถุดิบ หลีกเลี่ยงสิ่งที่แพ้</p>
+      <div class="brand-text">
+        <h1 data-i18n="app_title">Allergy Alert</h1>
+        <p class="tagline" data-i18n="tagline"></p>
       </div>
+      <button id="langToggle" class="lang-toggle" type="button">EN</button>
     </div>
   </header>
 
   <main class="container">
     <section class="card">
-      <h2>1. เลือกสารก่อภูมิแพ้ของคุณ</h2>
-      <p class="hint">ติ๊กรายการที่คุณแพ้ ระบบจะแจ้งเตือนเมื่อเจอในเมนู</p>
+      <h2 data-i18n="step1_title"></h2>
+      <p class="hint" data-i18n="step1_hint"></p>
       <div id="allergyList" class="chips"></div>
+
+      <div class="custom-allergy">
+        <label data-i18n="custom_label"></label>
+        <div class="custom-input-row">
+          <input type="text" id="customInput" />
+          <button id="addCustomBtn" class="btn-add" type="button">+</button>
+        </div>
+        <div id="customChips" class="chips custom"></div>
+      </div>
     </section>
 
     <section class="card">
-      <h2>2. ถ่ายรูป / อัปโหลดเมนู</h2>
-      <p class="hint">ใช้กล้องถ่ายชื่อเมนูในร้าน หรืออัปโหลดรูปจากเครื่อง</p>
+      <h2 data-i18n="step2_title"></h2>
+      <p class="hint" data-i18n="step2_hint"></p>
 
       <div class="upload-row">
         <label class="btn primary">
-          📷 ถ่ายรูป
+          <span data-i18n="take_photo"></span>
           <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden />
         </label>
         <label class="btn secondary">
-          🖼️ อัปโหลดรูป
+          <span data-i18n="upload_photo"></span>
           <input type="file" id="fileInput" accept="image/*" hidden />
         </label>
       </div>
@@ -45,19 +55,19 @@
       </div>
 
       <details class="manual">
-        <summary>หรือพิมพ์ชื่อเมนูเอง</summary>
-        <input type="text" id="textInput" placeholder="เช่น ผัดไทยกุ้งสด" />
+        <summary data-i18n="or_type"></summary>
+        <input type="text" id="textInput" />
       </details>
 
       <button id="analyzeBtn" class="btn primary big" type="button" disabled>
-        🔍 วิเคราะห์เมนู
+        <span data-i18n="analyze_btn"></span>
       </button>
     </section>
 
     <section id="resultSection" class="card hidden">
       <div id="loading" class="loading hidden">
         <div class="spinner"></div>
-        <p>กำลังวิเคราะห์เมนู...</p>
+        <p data-i18n="loading"></p>
       </div>
 
       <div id="resultContent"></div>
@@ -65,9 +75,10 @@
   </main>
 
   <footer>
-    <p>ทำโดย Typhoon OCR + Typhoon LLM · ฐานข้อมูลอาหารไทย</p>
+    <p data-i18n="footer"></p>
   </footer>
 
+  <script src="/static/i18n.js"></script>
   <script src="/static/script.js"></script>
 </body>
 </html>
