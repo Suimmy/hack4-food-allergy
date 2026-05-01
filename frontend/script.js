@@ -190,8 +190,10 @@ function renderDishCard(dish) {
 
   let sourceLabel = t("source_ai");
   if (dish.source === "local_db") sourceLabel = t("source_db");
-  else if (dish.source === "typhoon_llm") sourceLabel = t("source_ai");
-  // If web was used, the lookup function adds used_web flag (we put it on the result via web_search context)
+  else if (dish.source === "local_db_fuzzy") {
+    const ratio = dish.match_ratio ? ` (${Math.round(dish.match_ratio * 100)}%)` : "";
+    sourceLabel = t("source_db_fuzzy") + ratio;
+  } else if (dish.source === "typhoon_llm") sourceLabel = t("source_ai");
 
   const confidenceLabel = {
     high: t("conf_high"),

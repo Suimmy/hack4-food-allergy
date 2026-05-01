@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import re
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Optional
 
@@ -77,11 +78,43 @@ def find_dish_local(text: str) -> Optional[dict]:
     return best
 
 
+def find_dish_fuzzy(name: str, threshold: float = 0.72) -> Optional[tuple[dict, float]]:
+    """Fuzzy match a name against DB using SequenceMatcher.
+
+    Useful for OCR errors:
+      "ส้มตำปูปลา"  → matches "ส้มตำปูปลาร้า" (truncated)
+      "ต้มจี๊ด"    → matches "ต้มจืด"        (vowel confusion)
+
+    Returns (dish, ratio) or None if no candidate exceeds threshold.
+    """
+    if not name:
+        return None
+    target = normalize(name)
+    if len(target) < 3:
+        return None
+
+    best: Optional[tuple[dict, float]] = None
+    for dish in FOODS["dishes"]:
+        candidates = [dish["name_th"], dish["name_en"]] + dish.get("aliases", [])
+        for cand in candidates:
+            nc = normalize(cand)
+            if not nc or len(nc) < 3:
+                continue
+            ratio = SequenceMatcher(None, target, nc).ratio()
+            # Prefix bonus: if one is a prefix of the other, boost score
+            if target.startswith(nc) or nc.startswith(target):
+                ratio = max(ratio, 0.85)
+            if ratio >= threshold and (best is None or ratio > best[1]):
+                best = (dish, ratio)
+    return best
+
+
 def find_all_local_matches(text: str) -> list[dict]:
     """Find ALL DB dishes that appear in the text. Uses longest-first matching
     with masking so longer dish names take priority over shorter aliases."""
     if not text:
         return []
+    text = _strip_ocr_wrapper(text)
     norm_text = normalize(text)
 
     pairs: list[tuple[dict, str]] = []
@@ -242,62 +275,136 @@ async def typhoon_lookup_ingredients(dish_name: str, use_web: bool = True) -> di
         return {"ingredients": [], "allergens": [], "confidence": "low", "raw": content}
 
 
-async def extract_dish_names(ocr_text: str) -> list[str]:
-    """Use Typhoon LLM to extract a clean list of dish names from messy OCR text.
+def _strip_ocr_wrapper(text: str) -> str:
+    """typhoon-ocr sometimes returns {"natural_text": "..."} — unwrap it."""
+    s = text.strip()
+    if s.startswith("{") and "natural_text" in s:
+        try:
+            obj = json.loads(s)
+            if isinstance(obj, dict) and "natural_text" in obj:
+                return str(obj["natural_text"])
+        except json.JSONDecodeError:
+            m = re.search(r'"natural_text"\s*:\s*"((?:[^"\\]|\\.)*)"', s, re.DOTALL)
+            if m:
+                return m.group(1).encode().decode("unicode_escape")
+    return text
 
-    Handles markdown tables, prices, headers, JSON wrappers, etc.
+
+def heuristic_extract_dishes(ocr_text: str) -> list[str]:
+    """Extract dish names from OCR text using regex — works without LLM.
+
+    Handles markdown headers (### name), table rows (| name | price |),
+    bullet lists, and plain price-tagged lines.
     """
-    if not TYPHOON_API_KEY or not ocr_text.strip():
-        # Fallback: split by newline & filter
-        lines = [l.strip(" \t-•*#|") for l in ocr_text.splitlines()]
-        return [l for l in lines if l and len(l) >= 3 and not re.search(r"\d+\s*บาท|\d+\.-", l)]
+    text = _strip_ocr_wrapper(ocr_text)
+    candidates: list[str] = []
 
-    system = (
-        "คุณเป็นผู้ช่วยแยกชื่อเมนูอาหารจากข้อความเมนูร้านอาหาร "
-        "ตอบเป็น JSON array ของชื่อเมนูเท่านั้น ห้ามมีข้อความอื่น "
-        "ห้ามใส่ราคา หมายเลขโทรศัพท์ ชื่อร้าน หรือเวลาทำการ"
-    )
-    user = (
-        f"ข้อความจาก OCR เมนูร้านอาหาร:\n```\n{ocr_text[:4000]}\n```\n\n"
-        "ดึงชื่อเมนูอาหารทั้งหมด ตอบในรูปแบบ JSON array นี้เท่านั้น:\n"
-        '["เมนู1", "เมนู2", ...]'
-    )
+    PRICE_RE = re.compile(r"\d+(\.\d+)?\s*(บาท|baht|thb|\.\-|\.)", re.I)
+    JUNK_PATTERNS = [
+        r"^หมายเหตุ", r"^เปิดบริการ", r"^เมนู\s", r"^ร้าน",
+        r"^[-=*_|#]+$", r"^\d", r"^http", r"^---",
+        r"^[a-zA-Z\s]*menu\s*$",
+    ]
+    junk_re = re.compile("|".join(JUNK_PATTERNS), re.I)
 
-    payload = {
-        "model": TYPHOON_CHAT_MODEL,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        "max_tokens": 1024,
-        "temperature": 0.0,
-    }
-    headers = {
-        "Authorization": f"Bearer {TYPHOON_API_KEY}",
-        "Content-Type": "application/json",
-    }
+    # 1. Markdown headers like "### name" or "## name"
+    for m in re.finditer(r"^\s*#{2,4}\s+(.+?)\s*$", text, re.M):
+        cand = m.group(1).strip()
+        cand = PRICE_RE.sub("", cand).strip(" -|")
+        if cand and len(cand) >= 2 and not junk_re.search(cand):
+            candidates.append(cand)
 
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            r = await client.post(TYPHOON_CHAT_URL, headers=headers, json=payload)
-            r.raise_for_status()
-            content = r.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        print(f"extract_dish_names failed: {e}")
+    # 2. Markdown table rows: extract first cell only
+    for m in re.finditer(r"^\s*\|\s*([^|]+?)\s*\|", text, re.M):
+        cand = m.group(1).strip()
+        if cand in ("---", "") or set(cand) <= {"-", " "}:
+            continue
+        cand = PRICE_RE.sub("", cand).strip()
+        if cand and len(cand) >= 2 and not junk_re.search(cand):
+            candidates.append(cand)
+
+    # 3. Plain "name<separator>price" lines: "ลาบหมู 50 บาท"
+    for line in text.splitlines():
+        line = line.strip(" \t-•*#|")
+        if not line or len(line) < 3:
+            continue
+        m = re.match(r"^(.+?)\s+\d+(\.\d+)?\s*(บาท|baht|thb)\b", line, re.I)
+        if m:
+            cand = m.group(1).strip()
+            if cand and not junk_re.search(cand):
+                candidates.append(cand)
+
+    return candidates
+
+
+async def extract_dish_names(ocr_text: str) -> list[str]:
+    """Extract clean dish names from messy OCR text.
+
+    Strategy: ALWAYS run regex heuristics + try LLM, then merge & dedupe.
+    Heuristics catch markdown headers / table rows reliably; LLM catches free-form text.
+    """
+    if not ocr_text.strip():
         return []
 
-    m = re.search(r"\[.*\]", content, re.DOTALL)
-    if not m:
-        return []
-    try:
-        names = json.loads(m.group(0))
-        return [str(n).strip() for n in names if isinstance(n, (str, int, float)) and str(n).strip()]
-    except json.JSONDecodeError:
-        return []
+    cleaned = _strip_ocr_wrapper(ocr_text)
+    heuristic_names = heuristic_extract_dishes(ocr_text)
+
+    llm_names: list[str] = []
+    if TYPHOON_API_KEY:
+        system = (
+            "คุณเป็นผู้ช่วยแยกชื่อเมนูอาหารจากข้อความเมนูร้านอาหาร "
+            "ตอบเป็น JSON array ของชื่อเมนูเท่านั้น ห้ามมีข้อความอื่น "
+            "ห้ามใส่ราคา หมายเลขโทรศัพท์ ชื่อร้าน หรือเวลาทำการ"
+        )
+        user = (
+            f"ข้อความจาก OCR เมนูร้านอาหาร:\n```\n{cleaned[:4000]}\n```\n\n"
+            "ดึงชื่อเมนูอาหารทั้งหมด ตอบในรูปแบบ JSON array นี้เท่านั้น:\n"
+            '["เมนู1", "เมนู2", ...]'
+        )
+
+        payload = {
+            "model": TYPHOON_CHAT_MODEL,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "max_tokens": 1024,
+            "temperature": 0.0,
+        }
+        headers = {
+            "Authorization": f"Bearer {TYPHOON_API_KEY}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                r = await client.post(TYPHOON_CHAT_URL, headers=headers, json=payload)
+                r.raise_for_status()
+                content = r.json()["choices"][0]["message"]["content"]
+            m = re.search(r"\[.*\]", content, re.DOTALL)
+            if m:
+                parsed = json.loads(m.group(0))
+                llm_names = [
+                    str(n).strip()
+                    for n in parsed
+                    if isinstance(n, (str, int, float)) and str(n).strip()
+                ]
+        except Exception as e:
+            print(f"extract_dish_names LLM failed: {e}")
+
+    # Merge heuristic + LLM, dedupe by normalized form
+    seen: set[str] = set()
+    merged: list[str] = []
+    for name in llm_names + heuristic_names:
+        key = normalize(name)
+        if key and key not in seen:
+            seen.add(key)
+            merged.append(name)
+    return merged
 
 
 async def analyze_dish_name(name: str) -> dict:
-    """Analyze a single dish name: try local DB first, fall back to Typhoon LLM."""
+    """Analyze a single dish name: exact DB → fuzzy DB → Typhoon LLM."""
     dish = find_dish_local(name)
     if dish:
         return {
@@ -308,6 +415,19 @@ async def analyze_dish_name(name: str) -> dict:
             "ingredients": dish["ingredients"],
             "allergens_detected": dish["allergens"],
             "confidence": "high",
+        }
+    fuzzy = find_dish_fuzzy(name)
+    if fuzzy:
+        d, ratio = fuzzy
+        return {
+            "source": "local_db_fuzzy",
+            "dish_name_th": d["name_th"],
+            "dish_name_en": d["name_en"],
+            "query": name,
+            "match_ratio": round(ratio, 2),
+            "ingredients": d["ingredients"],
+            "allergens_detected": d["allergens"],
+            "confidence": "medium" if ratio < 0.85 else "high",
         }
     llm_result = await typhoon_lookup_ingredients(name)
     return {
