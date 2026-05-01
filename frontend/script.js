@@ -236,63 +236,129 @@ function renderDishCard(dish) {
   `;
 }
 
+// Build a comma-separated allergen list for the vendor phrase, in the given language
+function buildAllergenListLabel(lang) {
+  const items = [];
+  for (const a of allergensList) {
+    if (!selectedAllergies.has(a.key)) continue;
+    let label;
+    if (lang === "th") label = a.th;
+    else if (lang === "zh") label = ALLERGEN_LABELS_ZH[a.key] || a.en || a.th;
+    else label = a.en || a.th;
+    items.push(label);
+  }
+  for (const c of customAllergies) items.push(c);
+  return items.join(", ");
+}
+
+function vendorPhrase(lang) {
+  const list = buildAllergenListLabel(lang) || "—";
+  // Inject list into the localized template
+  const tpl = (I18N[lang] && I18N[lang].vendor_phrase) || "";
+  return tpl.replace("{list}", list);
+}
+
+function renderVendorPanel(hasUserAllergies) {
+  if (!hasUserAllergies) return "";
+  const thMsg = vendorPhrase("th");
+  const showSecond = currentLang !== "th";
+  const userMsg = showSecond ? vendorPhrase(currentLang) : "";
+  const flagSecond = currentLang === "en" ? "🇬🇧 EN" : "🇨🇳 中文";
+
+  return `
+    <div class="vendor-panel">
+      <div class="vendor-header">
+        <h3>${t("vendor_title")}</h3>
+        <button class="vendor-copy-btn" data-msg="${escapeAttr(thMsg + (showSecond ? "\n\n" + userMsg : ""))}">
+          ${t("vendor_copy")}
+        </button>
+      </div>
+      <div class="vendor-msg">
+        <span class="vendor-lang-tag">🇹🇭 TH</span>
+        <p>${escapeHtml(thMsg)}</p>
+      </div>
+      ${showSecond ? `
+        <div class="vendor-msg">
+          <span class="vendor-lang-tag">${flagSecond}</span>
+          <p>${escapeHtml(userMsg)}</p>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function escapeAttr(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/\n/g, "&#10;");
+}
+
 function renderResult(data) {
   const dishes = data.dishes || [];
   const alerted = dishes.filter((d) => d.has_alert);
   const safe = dishes.filter((d) => !d.has_alert);
   const hasUserAllergies = selectedAllergies.size > 0 || customAllergies.length > 0;
 
-  let summary = "";
+  let bannerHtml = "";
+  let bannerStyle = "info"; // info | danger | safe — controls layout
   if (data.is_menu) {
     if (alerted.length > 0) {
-      summary = `
-        <div class="summary-banner danger">
-          <span class="summary-icon">⚠️</span>
-          <div>
-            <h2>${t("alert_title_multi_some", { alerted: alerted.length, total: dishes.length })}</h2>
-            <p>${t("alert_desc_multi_some")}</p>
-          </div>
+      bannerStyle = "danger";
+      bannerHtml = `
+        <span class="summary-icon">⚠️</span>
+        <div>
+          <h2>${t("alert_title_multi_some", { alerted: alerted.length, total: dishes.length })}</h2>
+          <p>${t("alert_desc_multi_some")}</p>
         </div>`;
     } else if (hasUserAllergies) {
-      summary = `
-        <div class="summary-banner safe">
-          <span class="summary-icon">✅</span>
-          <div>
-            <h2>${t("alert_title_multi_safe")}</h2>
-            <p>${t("alert_desc_multi_safe", { total: dishes.length })}</p>
-          </div>
+      bannerStyle = "safe";
+      bannerHtml = `
+        <span class="summary-icon">✅</span>
+        <div>
+          <h2>${t("alert_title_multi_safe")}</h2>
+          <p>${t("alert_desc_multi_safe", { total: dishes.length })}</p>
         </div>`;
     } else {
-      summary = `
-        <div class="summary-banner info">
-          <span class="summary-icon">ℹ️</span>
-          <div>
-            <h2>${t("alert_title_multi_info", { total: dishes.length })}</h2>
-            <p>${t("alert_desc_multi_info")}</p>
-          </div>
+      bannerStyle = "info";
+      bannerHtml = `
+        <span class="summary-icon">ℹ️</span>
+        <div>
+          <h2>${t("alert_title_multi_info", { total: dishes.length })}</h2>
+          <p>${t("alert_desc_multi_info")}</p>
         </div>`;
     }
   } else if (dishes.length === 1) {
     const d = dishes[0];
     if (d.has_alert) {
-      summary = `
-        <div class="summary-banner danger">
-          <span class="summary-icon">⚠️</span>
-          <div>
-            <h2>${t("alert_title_single_warn")}</h2>
-            <p>${t("alert_desc_single_warn", { n: d.alerts.length })}</p>
-          </div>
+      bannerStyle = "danger";
+      bannerHtml = `
+        <span class="summary-icon">⚠️</span>
+        <div>
+          <h2>${t("alert_title_single_warn")}</h2>
+          <p>${t("alert_desc_single_warn", { n: d.alerts.length })}</p>
         </div>`;
     } else if (hasUserAllergies) {
-      summary = `
-        <div class="summary-banner safe">
-          <span class="summary-icon">✅</span>
-          <div>
-            <h2>${t("alert_title_single_safe")}</h2>
-            <p>${t("alert_desc_single_safe")}</p>
-          </div>
+      bannerStyle = "safe";
+      bannerHtml = `
+        <span class="summary-icon">✅</span>
+        <div>
+          <h2>${t("alert_title_single_safe")}</h2>
+          <p>${t("alert_desc_single_safe")}</p>
         </div>`;
     }
+  }
+
+  // Compose: split layout when there's both a banner AND a vendor panel
+  const vendorHtml = renderVendorPanel(hasUserAllergies);
+  let summary = "";
+  if (bannerHtml && vendorHtml) {
+    summary = `
+      <div class="alert-row">
+        <div class="summary-banner ${bannerStyle}">${bannerHtml}</div>
+        ${vendorHtml}
+      </div>`;
+  } else if (bannerHtml) {
+    summary = `<div class="summary-banner ${bannerStyle}">${bannerHtml}</div>`;
+  } else if (vendorHtml) {
+    summary = vendorHtml;
   }
 
   const alertedHtml = alerted.length
@@ -318,6 +384,25 @@ function renderResult(data) {
     : "";
 
   resultContent.innerHTML = `${summary}${alertedHtml}${safeHtml}${debugHtml}`;
+
+  // Hook up copy buttons on vendor panels
+  resultContent.querySelectorAll(".vendor-copy-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const msg = btn.dataset.msg || "";
+      try {
+        await navigator.clipboard.writeText(msg);
+        const original = btn.textContent;
+        btn.textContent = t("vendor_copied");
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove("copied");
+        }, 1500);
+      } catch (e) {
+        console.warn("Copy failed:", e);
+      }
+    });
+  });
 }
 
 function escapeHtml(s) {

@@ -65,6 +65,10 @@ const I18N = {
     debug_no_llm: "LLM ไม่ได้ส่งชื่อเมนูกลับมา",
     debug_ocr: "OCR text:",
     error_prefix: "❌ ",
+    vendor_title: "📣 แสดงให้แม่ค้าดู",
+    vendor_copy: "📋 คัดลอก",
+    vendor_copied: "✓ คัดลอกแล้ว",
+    vendor_phrase: "สวัสดีครับ ผมแพ้วัตถุดิบประเภท {list} ห้ามใส่วัตถุดิบเหล่านี้มาในอาหารที่ผมสั่ง หรือถ้าทำไม่ได้ ให้บอกผมว่าไม่ได้ครับ",
   },
   en: {
     app_title: "Allergy Alert",
@@ -116,6 +120,10 @@ const I18N = {
     debug_no_llm: "LLM returned no menu names",
     debug_ocr: "OCR text:",
     error_prefix: "❌ ",
+    vendor_title: "📣 Show this to the vendor",
+    vendor_copy: "📋 Copy",
+    vendor_copied: "✓ Copied",
+    vendor_phrase: "Hello, I am allergic to: {list}. Please do not include any of these in my order. If you cannot, please let me know.",
   },
   zh: {
     app_title: "过敏警报",
@@ -167,6 +175,10 @@ const I18N = {
     debug_no_llm: "LLM 未返回菜单名称",
     debug_ocr: "OCR 文本：",
     error_prefix: "❌ ",
+    vendor_title: "📣 给商家看",
+    vendor_copy: "📋 复制",
+    vendor_copied: "✓ 已复制",
+    vendor_phrase: "您好，我对以下食材过敏：{list}。请不要在我点的菜里加入这些食材。如果做不到，请告诉我。",
   },
 };
 
