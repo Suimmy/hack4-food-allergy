@@ -166,9 +166,11 @@ async def typhoon_ocr(image_bytes: bytes, mime: str = "image/jpeg") -> str:
                     {
                         "type": "text",
                         "text": (
-                            "อ่านข้อความและชื่อเมนูอาหารจากรูปนี้ "
-                            "ตอบเฉพาะชื่อเมนูที่เห็นทั้งหมด คั่นด้วยขึ้นบรรทัดใหม่ "
-                            "ห้ามอธิบายเพิ่ม ห้ามใส่ราคา"
+                            "อ่านข้อความเมนูอาหารทั้งหมดจากรูปนี้อย่างละเอียด "
+                            "ลิสต์ชื่อเมนูทุกรายการที่เห็น คั่นด้วยขึ้นบรรทัดใหม่ "
+                            "ถ้ามีหลายคอลัมน์ให้อ่านครบทุกคอลัมน์ "
+                            "ถ้ามีลำดับที่ (เช่น 1, 2, 3...) ให้คงไว้ "
+                            "ห้ามอธิบายเพิ่ม ห้ามสรุป"
                         ),
                     },
                     {
@@ -178,7 +180,7 @@ async def typhoon_ocr(image_bytes: bytes, mime: str = "image/jpeg") -> str:
                 ],
             }
         ],
-        "max_tokens": 1024,
+        "max_tokens": 8192,
         "temperature": 0.0,
     }
 
@@ -293,46 +295,70 @@ def _strip_ocr_wrapper(text: str) -> str:
 def heuristic_extract_dishes(ocr_text: str) -> list[str]:
     """Extract dish names from OCR text using regex — works without LLM.
 
-    Handles markdown headers (### name), table rows (| name | price |),
-    bullet lists, and plain price-tagged lines.
+    Handles:
+      - Markdown headers (### name, ## name)
+      - Markdown table rows (| name | price |)
+      - Numbered lists (1 ชื่อเมนู, 1. ชื่อเมนู, ① ชื่อเมนู)
+      - Price-tagged lines (ลาบหมู 50 บาท)
+      - Bullet lists (- ชื่อเมนู, • ชื่อเมนู)
     """
     text = _strip_ocr_wrapper(ocr_text)
     candidates: list[str] = []
 
-    PRICE_RE = re.compile(r"\d+(\.\d+)?\s*(บาท|baht|thb|\.\-|\.)", re.I)
-    JUNK_PATTERNS = [
-        r"^หมายเหตุ", r"^เปิดบริการ", r"^เมนู\s", r"^ร้าน",
-        r"^[-=*_|#]+$", r"^\d", r"^http", r"^---",
-        r"^[a-zA-Z\s]*menu\s*$",
-    ]
-    junk_re = re.compile("|".join(JUNK_PATTERNS), re.I)
+    PRICE_RE = re.compile(r"\d+(\.\d+)?\s*(บาท|baht|thb|\.\-|\.)\s*$", re.I)
+    JUNK_RE = re.compile(
+        r"^(หมายเหตุ|เปิดบริการ|ร้าน|menu|sale\s*here|แจกลิสต์|"
+        r"\d+\s*เมนู|เก็บไว้|tel|โทร|line\b|fb\b|ig\b|http)",
+        re.I,
+    )
+    SECTION_HEADER_RE = re.compile(
+        r"^(ข้าวจานเดียว|เมนูเส้น|เมนูส้มตำ|เมนูลาบ|เมนูต้ม|เมนูแกง|เมนูยำ|"
+        r"ของทอด|ของหวาน|เครื่องดื่ม|ต้ม\s*แกง|และอื่นๆ)\s*$"
+    )
 
-    # 1. Markdown headers like "### name" or "## name"
-    for m in re.finditer(r"^\s*#{2,4}\s+(.+?)\s*$", text, re.M):
-        cand = m.group(1).strip()
-        cand = PRICE_RE.sub("", cand).strip(" -|")
-        if cand and len(cand) >= 2 and not junk_re.search(cand):
-            candidates.append(cand)
-
-    # 2. Markdown table rows: extract first cell only
-    for m in re.finditer(r"^\s*\|\s*([^|]+?)\s*\|", text, re.M):
-        cand = m.group(1).strip()
-        if cand in ("---", "") or set(cand) <= {"-", " "}:
-            continue
+    def add(cand: str):
+        cand = cand.strip(" \t.-•*#|:")
         cand = PRICE_RE.sub("", cand).strip()
-        if cand and len(cand) >= 2 and not junk_re.search(cand):
-            candidates.append(cand)
+        if not cand or len(cand) < 2:
+            return
+        if JUNK_RE.search(cand) or SECTION_HEADER_RE.search(cand):
+            return
+        # Reject if it's just digits or punctuation
+        if not re.search(r"[ก-๛a-zA-Z]", cand):
+            return
+        candidates.append(cand)
 
-    # 3. Plain "name<separator>price" lines: "ลาบหมู 50 บาท"
+    # Markdown headers
+    for m in re.finditer(r"^\s*#{2,4}\s+(.+?)\s*$", text, re.M):
+        add(m.group(1))
+
+    # Markdown table rows: extract first cell only
+    for m in re.finditer(r"^\s*\|\s*([^|]+?)\s*\|", text, re.M):
+        cell = m.group(1).strip()
+        if cell in ("---", "") or set(cell) <= {"-", " "}:
+            continue
+        add(cell)
+
+    # Numbered list: "1 ชื่อ", "1. ชื่อ", "1) ชื่อ", "①ชื่อ"
+    NUMBERED_RE = re.compile(
+        r"^\s*(?:\d{1,3}[\.\)\s]|[①-⓿❶-➓])\s*(.+?)\s*$",
+        re.M,
+    )
+    for m in NUMBERED_RE.finditer(text):
+        add(m.group(1))
+
+    # "name <space> price <space> บาท"
     for line in text.splitlines():
         line = line.strip(" \t-•*#|")
         if not line or len(line) < 3:
             continue
         m = re.match(r"^(.+?)\s+\d+(\.\d+)?\s*(บาท|baht|thb)\b", line, re.I)
         if m:
-            cand = m.group(1).strip()
-            if cand and not junk_re.search(cand):
-                candidates.append(cand)
+            add(m.group(1))
+
+    # Bullet lists: "- ชื่อ", "• ชื่อ"
+    for m in re.finditer(r"^\s*[-•*]\s+(.+?)\s*$", text, re.M):
+        add(m.group(1))
 
     return candidates
 
